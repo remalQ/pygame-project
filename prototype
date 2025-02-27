@@ -1,6 +1,9 @@
 import pygame
 import sys
 
+# Инimport pygame
+import sys
+
 # Инициализация Pygame
 pygame.init()
 
@@ -23,14 +26,25 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.Surface((50, 50))
         self.image.fill(RED)
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH // 2, HEIGHT // 2)
+        self.rect.topleft = (50, HEIGHT - 150)  # Спавн в левой части экрана
         self.velocity_y = 0
+        self.velocity_x = 0
         self.on_ground = False
+        self.speed = 5
 
     def update(self):
         # Гравитация
-        self.velocity_y += 1
+        self.velocity_y += 0.5
         self.rect.y += self.velocity_y
+
+        # Движение по горизонтали
+        self.rect.x += self.velocity_x
+
+        # Ограничение выхода за пределы экрана по горизонтали
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > WIDTH:
+            self.rect.right = WIDTH
 
         # Ограничение падения
         if self.rect.bottom > HEIGHT:
@@ -40,7 +54,7 @@ class Player(pygame.sprite.Sprite):
 
     def jump(self):
         if self.on_ground:
-            self.velocity_y = -15
+            self.velocity_y = -12
             self.on_ground = False
 
 # Класс платформы
@@ -61,9 +75,9 @@ class Game:
         self.all_sprites.add(self.player)
 
         # Создание платформ
-        self.platforms.add(Platform(0, HEIGHT - 50, WIDTH, 50))
-        self.platforms.add(Platform(200, 400, 100, 20))
-        self.platforms.add(Platform(500, 300, 100, 20))
+        self.platforms.add(Platform(0, HEIGHT - 50, WIDTH, 50))  # Пол
+        self.platforms.add(Platform(200, 400, 100, 20))         # Платформа 1
+        self.platforms.add(Platform(500, 300, 100, 20))         # Платформа 2
         self.all_sprites.add(self.platforms)
 
     def run(self):
@@ -73,17 +87,35 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+
+                # Управление на WASD
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
+                    if event.key == pygame.K_w:
                         self.player.jump()
+                    if event.key == pygame.K_a:
+                        self.player.velocity_x = -self.player.speed
+                    if event.key == pygame.K_d:
+                        self.player.velocity_x = self.player.speed
+
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_a and self.player.velocity_x < 0:
+                        self.player.velocity_x = 0
+                    if event.key == pygame.K_d and self.player.velocity_x > 0:
+                        self.player.velocity_x = 0
 
             # Обновление
             self.all_sprites.update()
 
-            # Проверка коллизий
-            if pygame.sprite.spritecollide(self.player, self.platforms, False):
-                self.player.on_ground = True
-                self.player.velocity_y = 0
+            # Проверка коллизий с платформами
+            for platform in self.platforms:
+                if self.player.rect.colliderect(platform.rect):
+                    if self.player.velocity_y > 0:  # Если игрок падает
+                        self.player.rect.bottom = platform.rect.top
+                        self.player.on_ground = True
+                        self.player.velocity_y = 0
+                    elif self.player.velocity_y < 0:  # Если игрок движется вверх
+                        self.player.rect.top = platform.rect.bottom
+                        self.player.velocity_y = 0
 
             # Отрисовка
             screen.fill(BLACK)
