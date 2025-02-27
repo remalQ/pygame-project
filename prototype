@@ -1,0 +1,99 @@
+import pygame
+import sys
+
+# Инициализация Pygame
+pygame.init()
+
+# Настройки окна
+WIDTH, HEIGHT = 800, 600
+FPS = 60
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("I Hate This Game")
+clock = pygame.time.Clock()
+
+# Цвета
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+
+# Класс игрока
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.center = (WIDTH // 2, HEIGHT // 2)
+        self.velocity_y = 0
+        self.on_ground = False
+
+    def update(self):
+        # Гравитация
+        self.velocity_y += 1
+        self.rect.y += self.velocity_y
+
+        # Ограничение падения
+        if self.rect.bottom > HEIGHT:
+            self.rect.bottom = HEIGHT
+            self.on_ground = True
+            self.velocity_y = 0
+
+    def jump(self):
+        if self.on_ground:
+            self.velocity_y = -15
+            self.on_ground = False
+
+# Класс платформы
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.image = pygame.Surface((width, height))
+        self.image.fill(WHITE)
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+
+# Основной класс игры
+class Game:
+    def __init__(self):
+        self.player = Player()
+        self.platforms = pygame.sprite.Group()
+        self.all_sprites = pygame.sprite.Group()
+        self.all_sprites.add(self.player)
+
+        # Создание платформ
+        self.platforms.add(Platform(0, HEIGHT - 50, WIDTH, 50))
+        self.platforms.add(Platform(200, 400, 100, 20))
+        self.platforms.add(Platform(500, 300, 100, 20))
+        self.all_sprites.add(self.platforms)
+
+    def run(self):
+        running = True
+        while running:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        self.player.jump()
+
+            # Обновление
+            self.all_sprites.update()
+
+            # Проверка коллизий
+            if pygame.sprite.spritecollide(self.player, self.platforms, False):
+                self.player.on_ground = True
+                self.player.velocity_y = 0
+
+            # Отрисовка
+            screen.fill(BLACK)
+            self.all_sprites.draw(screen)
+            pygame.display.flip()
+
+        pygame.quit()
+        sys.exit()
+
+# Запуск игры
+if __name__ == "__main__":
+    game = Game()
+    game.run()
