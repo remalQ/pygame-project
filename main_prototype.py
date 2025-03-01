@@ -93,6 +93,7 @@ class Button:
         self.hovered = False
 
     def draw(self, screen):
+        # Отрисовка кнопки с учётом состояния hovered
         pygame.draw.rect(screen, self.hover_color if self.hovered else self.color, self.rect)
         text_surface = small_font.render(self.text, True, BLACK)
         text_rect = text_surface.get_rect(center=self.rect.center)
@@ -102,6 +103,7 @@ class Button:
         self.hovered = self.rect.collidepoint(mouse_pos)
 
     def is_clicked(self, mouse_pos):
+        self.check_hover(mouse_pos)
         return self.hovered
 
 
@@ -206,47 +208,6 @@ class Game:
                 if main_menu_button.is_clicked(mouse_pos):
                     self.show_main_menu()
 
-    def show_main_menu(self):
-        main_menu = True
-        play_button = Button("Играть", WIDTH // 2 - 100, HEIGHT // 2 - 150, 200, 50, GRAY, WHITE)
-        settings_button = Button("Настройки", WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, GRAY, WHITE)
-        help_button = Button("Помощь", WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, GRAY, WHITE)
-        level_select_button = Button("Выбор уровня", WIDTH // 2 - 100, HEIGHT // 2 + 150, 200, 50, GRAY, WHITE)
-
-        while main_menu:
-            clock.tick(FPS)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-
-            screen.fill(BLACK)
-            mouse_pos = pygame.mouse.get_pos()
-
-            play_button.check_hover(mouse_pos)
-            settings_button.check_hover(mouse_pos)
-            help_button.check_hover(mouse_pos)
-            level_select_button.check_hover(mouse_pos)
-
-            play_button.draw(screen)
-            settings_button.draw(screen)
-            help_button.draw(screen)
-            level_select_button.draw(screen)
-
-            for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if play_button.is_clicked(mouse_pos):
-                        main_menu = False
-                        self.run()
-                    if settings_button.is_clicked(mouse_pos):
-                        self.show_settings()
-                    if help_button.is_clicked(mouse_pos):
-                        self.show_help()
-                    if level_select_button.is_clicked(mouse_pos):
-                        self.show_level_select()
-
-            pygame.display.flip()
-
     def show_settings(self):
         settings_menu = True
         back_button = Button("Назад", WIDTH // 2 - 100, HEIGHT // 2 + 100, 200, 50, GRAY, WHITE)
@@ -260,6 +221,16 @@ class Game:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if back_button.is_clicked(mouse_pos):
+                        settings_menu = False
+                    if sound_button.is_clicked(mouse_pos):
+                        self.sound_enabled = not self.sound_enabled
+                        sound_button.text = "Звук: Вкл" if self.sound_enabled else "Звук: Выкл"
+                    if volume_up_button.is_clicked(mouse_pos):
+                        self.volume = min(1.0, self.volume + 0.1)
+                    if volume_down_button.is_clicked(mouse_pos):
+                        self.volume = max(0.0, self.volume - 0.1)
 
             screen.fill(BLACK)
             mouse_pos = pygame.mouse.get_pos()
@@ -274,18 +245,6 @@ class Game:
             volume_up_button.draw(screen)
             volume_down_button.draw(screen)
 
-            for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if back_button.is_clicked(mouse_pos):
-                        settings_menu = False
-                    if sound_button.is_clicked(mouse_pos):
-                        self.sound_enabled = not self.sound_enabled
-                        sound_button.text = "Звук: Вкл" if self.sound_enabled else "Звук: Выкл"
-                    if volume_up_button.is_clicked(mouse_pos):
-                        self.volume = min(1.0, self.volume + 0.1)
-                    if volume_down_button.is_clicked(mouse_pos):
-                        self.volume = max(0.0, self.volume - 0.1)
-
             pygame.display.flip()
 
     def show_help(self):
@@ -298,6 +257,9 @@ class Game:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if back_button.is_clicked(mouse_pos):
+                        help_menu = False
 
             screen.fill(BLACK)
             mouse_pos = pygame.mouse.get_pos()
@@ -307,11 +269,6 @@ class Game:
 
             back_button.check_hover(mouse_pos)
             back_button.draw(screen)
-
-            for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if back_button.is_clicked(mouse_pos):
-                        help_menu = False
 
             pygame.display.flip()
 
@@ -326,6 +283,12 @@ class Game:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if level1_button.is_clicked(mouse_pos):
+                        level_select_menu = False
+                        self.run()
+                    if back_button.is_clicked(mouse_pos):
+                        level_select_menu = False
 
             screen.fill(BLACK)
             mouse_pos = pygame.mouse.get_pos()
@@ -336,13 +299,44 @@ class Game:
             level1_button.draw(screen)
             back_button.draw(screen)
 
+            pygame.display.flip()
+
+    def show_main_menu(self):
+        main_menu = True
+        play_button = Button("Играть", WIDTH // 2 - 100, HEIGHT // 2 - 150, 200, 50, GRAY, WHITE)
+        settings_button = Button("Настройки", WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, GRAY, WHITE)
+        help_button = Button("Помощь", WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, GRAY, WHITE)
+        level_select_button = Button("Выбор уровня", WIDTH // 2 - 100, HEIGHT // 2 + 150, 200, 50, GRAY, WHITE)
+
+        while main_menu:
+            clock.tick(FPS)
             for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if level1_button.is_clicked(mouse_pos):
-                        level_select_menu = False
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if play_button.is_clicked(mouse_pos):
+                        main_menu = False
                         self.run()
-                    if back_button.is_clicked(mouse_pos):
-                        level_select_menu = False
+                    if settings_button.is_clicked(mouse_pos):
+                        self.show_settings()
+                    if help_button.is_clicked(mouse_pos):
+                        self.show_help()
+                    if level_select_button.is_clicked(mouse_pos):
+                        self.show_level_select()
+
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+
+            play_button.check_hover(mouse_pos)
+            settings_button.check_hover(mouse_pos)
+            help_button.check_hover(mouse_pos)
+            level_select_button.check_hover(mouse_pos)
+
+            play_button.draw(screen)
+            settings_button.draw(screen)
+            help_button.draw(screen)
+            level_select_button.draw(screen)
 
             pygame.display.flip()
 
