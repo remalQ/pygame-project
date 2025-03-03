@@ -1,8 +1,7 @@
 import sys
 from Button import *
-from Platform import *
 from Player import *
-from Door import *
+from Create_Levels import *
 
 
 # Основной класс игры
@@ -16,8 +15,8 @@ class Game:
 
         # Уровни
         self.levels = [
-            self.create_level_1(),  # Уровень 1
-            self.create_level_2(),  # Уровень 2
+            level_1,  # Уровень 1
+            level_2,  # Уровень 2
         ]
         self.current_level = 0
         self.load_level(self.current_level)
@@ -28,35 +27,13 @@ class Game:
         self.sound_enabled = True
         self.volume = 0.5
 
-    def create_level_1(self):
-        # Уровень 1
-        platforms = [
-            Platform(0, HEIGHT - 50, WIDTH / 2 - 100, 50),  # Левая половина пола
-            Platform(WIDTH / 2 + 100, HEIGHT - 50, WIDTH / 2 - 100, 50),  # Правая половина пола
-            Platform(200, HEIGHT - 200, 100, 20),  # Платформа 1
-            Platform(500, HEIGHT - 150, 100, 20),  # Платформа 2
-        ]
-        door = Door(WIDTH - 100, HEIGHT - 150)  # Дверь
-        return platforms, door
-
-    def create_level_2(self):
-        # Уровень 2
-        platforms = [
-            Platform(0, HEIGHT - 50, WIDTH, 50),  # Пол
-            Platform(300, 600, 200, 20),         # Платформа 1
-            Platform(600, 400, 150, 20),         # Платформа 2
-            Platform(1000, 200, 100, 20),        # Платформа 3
-        ]
-        door = Door(WIDTH - 100, 100)            # Дверь вверху
-        return platforms, door
-
     def load_level(self, level_index):
         # Загружаем уровень
         self.platforms.empty()
         self.all_sprites.empty()
         self.all_sprites.add(self.player)
 
-        platforms, door = self.levels[level_index]
+        platforms, door = self.levels[level_index].get_objects()
         for platform in platforms:
             self.platforms.add(platform)
             self.all_sprites.add(platform)
