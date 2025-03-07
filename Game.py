@@ -16,7 +16,8 @@ class Game:
         # Уровни
         self.levels = [
             level_1,  # Уровень 1
-            level_2,  # Уровень 2
+            level_2,# Уровень 2
+            level_3,
         ]
         self.current_level = 0
         self.load_level(self.current_level)
@@ -303,11 +304,12 @@ class Game:
 
             pygame.display.flip()
 
-    def show_level_select(self):
+        def show_level_select(self):
         level_select_menu = True
-        back_button = Button("Назад", WIDTH // 2, HEIGHT // 2 + 100, GRAY, WHITE)
-        level1_button = Button("Уровень 1", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        back_button = Button("Назад", WIDTH // 2, HEIGHT // 2 + 150, GRAY, WHITE)
+        level1_button = Button("Уровень 1", WIDTH // 2, HEIGHT // 2 + 100, GRAY, WHITE)
         level2_button = Button("Уровень 2", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+        level3_button = Button("Уровень 3", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
 
         while level_select_menu:
             clock.tick(FPS)
@@ -326,6 +328,11 @@ class Game:
                         self.current_level = 1
                         self.load_level(self.current_level)
                         self.run()
+                    if level_3_button.is_clicked(mouse_pos):  
+                        level_select_menu = False
+                        self.current_level = 2  
+                        self.load_level(self.current_level)
+                        self.run()
                     if back_button.is_clicked(mouse_pos):
                         level_select_menu = False
 
@@ -334,10 +341,12 @@ class Game:
 
             level1_button.check_hover(mouse_pos)
             level2_button.check_hover(mouse_pos)
+            level3_button.check_hover(mouse_pos)
             back_button.check_hover(mouse_pos)
 
             level1_button.draw(screen)
             level2_button.draw(screen)
+            level3_button.draw(screen)
             back_button.draw(screen)
 
             pygame.display.flip()
