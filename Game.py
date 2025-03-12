@@ -2,6 +2,7 @@ import sys
 from Button import *
 from Player import *
 from Create_Levels import *
+from PlatformDrawer import *
 
 
 # Основной класс игры
@@ -28,6 +29,9 @@ class Game:
         self.sound_enabled = True
         self.volume = 0.5
 
+        # Добавляем PlatformDrawer
+        self.platform_drawer = PlatformDrawer(self)
+
     def load_level(self, level_index):
         # Загружаем уровень
         self.platforms.empty()
@@ -53,6 +57,9 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+
+                # Передаем события в PlatformDrawer
+                self.platform_drawer.handle_event(event)
 
                 # Управление на WASD
                 if event.type == pygame.KEYDOWN:
@@ -105,6 +112,9 @@ class Game:
             # Отрисовка
             screen.fill(BLACK)
             self.all_sprites.draw(screen)
+
+            # Отрисовка временной платформы
+            self.platform_drawer.draw(screen)
 
             if self.level_complete:
                 text = font.render("Уровень пройден!", True, GREEN)
@@ -304,7 +314,7 @@ class Game:
 
             pygame.display.flip()
 
-        def show_level_select(self):
+    def show_level_select(self):
         level_select_menu = True
         back_button = Button("Назад", WIDTH // 2, HEIGHT // 2 + 150, GRAY, WHITE)
         level1_button = Button("Уровень 1", WIDTH // 2, HEIGHT // 2 + 100, GRAY, WHITE)
@@ -328,9 +338,9 @@ class Game:
                         self.current_level = 1
                         self.load_level(self.current_level)
                         self.run()
-                    if level_3_button.is_clicked(mouse_pos):  
+                    if level3_button.is_clicked(mouse_pos):
                         level_select_menu = False
-                        self.current_level = 2  
+                        self.current_level = 2
                         self.load_level(self.current_level)
                         self.run()
                     if back_button.is_clicked(mouse_pos):
