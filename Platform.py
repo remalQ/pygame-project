@@ -9,3 +9,6 @@ class Platform(pygame.sprite.Sprite):
         self.image.fill(WHITE)
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)  # Отрисовка платформы

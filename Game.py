@@ -64,7 +64,8 @@ class Game:
                 # Управление на WASD
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_w:
-                        self.player.jump()
+                        if self.player.on_ground:  # Прыгаем только, если на земле
+                            self.player.jump()
                     if event.key == pygame.K_a:
                         self.player.velocity_x = -self.player.speed
                     if event.key == pygame.K_d:
@@ -82,18 +83,28 @@ class Game:
                 # Обновление
                 self.all_sprites.update()
 
+                self.player.on_ground = False  # Сбрасываем состояние на False перед каждой проверкой
+
+                # Проверка столкновений с платформами
                 for platform in self.platforms:
                     if self.player.rect.colliderect(platform.rect):
-                        if self.player.velocity_y > 0:  # Если игрок падает
+                        if self.player.velocity_y > 0 and self.player.rect.bottom - self.player.velocity_y <= platform.rect.top:
+                            # Игрок стоит на платформе
                             self.player.rect.bottom = platform.rect.top
                             self.player.on_ground = True
                             self.player.velocity_y = 0
-                        elif self.player.velocity_y < 0:  # Если игрок движется вверх
+                        elif self.player.velocity_y < 0 and self.player.rect.top - self.player.velocity_y >= platform.rect.bottom:
+                            # Игрок ударяется головой
                             self.player.rect.top = platform.rect.bottom
                             self.player.velocity_y = 0
-                        # Если игрок стоит на платформе
-                        elif self.player.velocity_y == 0 and self.player.rect.bottom == platform.rect.top:
-                            self.player.on_ground = True
+                        elif self.player.velocity_x > 0 and self.player.rect.right - self.player.velocity_x <= platform.rect.left:
+                            # Столкновение справа
+                            self.player.rect.right = platform.rect.left
+                            self.player.velocity_x = 0
+                        elif self.player.velocity_x < 0 and self.player.rect.left - self.player.velocity_x >= platform.rect.right:
+                            # Столкновение слева
+                            self.player.rect.left = platform.rect.right
+                            self.player.velocity_x = 0
 
                 # Проверка завершения уровня
                 if self.player.rect.colliderect(self.door.rect):

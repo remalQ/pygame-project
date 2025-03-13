@@ -1,23 +1,541 @@
-import pygame
+from LinePlatform import *
+
+
+class PlatformDrawer:
+    def __init__(self, game):
+        self.game = game
+        self.drawing = False
+        self.start_pos = None
+        self.temp_line = None
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # Левая кнопка мыши
+                self.drawing = True
+                self.start_pos = event.pos
+                self.temp_line = LinePlatform(self.start_pos, self.start_pos)  # Создаем временную линию
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1 and self.drawing:
+                self.drawing = False
+                end_pos = event.pos
+                line_platform = LinePlatform(self.start_pos, end_pos)
+                self.game.platforms.add(line_platform)  # Добавляем линию в группы платформ
+                self.game.all_sprites.add(line_platform)  # Добавляем линию в группы всех спрайтов
+                self.temp_line = None
+
+        elif event.type == pygame.MOUSEMOTION:
+            if self.drawing:
+                end_pos = event.pos
+                self.temp_line.end_pos = end_pos  # Обновляем конец временной линии
+
+    def draw(self, screen):
+        if self.drawing and self.temp_line:
+            self.temp_line.draw(screen)  # Рисуем временную линию
+
+
+
+
+
+
+
+
+from Const_Values import *
+
+
+# Класс платформы
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.image = pygame.Surface((width, height))
+        self.image.fill(WHITE)
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+
+
+
+
+
 import sys
+from Button import *
+from Player import *
+from Create_Levels import *
+from PlatformDrawer import *
 
-# Инimport pygame
-import sys
 
-# Инициализация Pygame
-pygame.init()
+# Основной класс игры
+class Game:
+    def __init__(self):
+        self.player = Player()
+        self.platforms = pygame.sprite.Group()
+        self.door = None
+        self.all_sprites = pygame.sprite.Group()
+        self.all_sprites.add(self.player)
 
-# Настройки окна
-WIDTH, HEIGHT = 800, 600
-FPS = 60
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("I Hate This Game")
-clock = pygame.time.Clock()
+        # Уровни
+        self.levels = [
+            level_1,  # Уровень 1
+            level_2,# Уровень 2
+            level_3,
+        ]
+        self.current_level = 0
+        self.load_level(self.current_level)
 
-# Цвета
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
+        self.level_complete = False
+        self.paused = False
+        self.game_over = False  # Флаг для отслеживания проигрыша
+        self.sound_enabled = True
+        self.volume = 0.5
+
+        # Добавляем PlatformDrawer
+        self.platform_drawer = PlatformDrawer(self)
+
+    def load_level(self, level_index):
+        # Загружаем уровень
+        self.platforms.empty()
+        self.all_sprites.empty()
+        self.all_sprites.add(self.player)
+
+        platforms, door = self.levels[level_index].get_objects()
+        for platform in platforms:
+            self.platforms.add(platform)
+            self.all_sprites.add(platform)
+        self.door = door
+        self.all_sprites.add(self.door)
+
+        # Сбрасываем состояние игрока
+        self.player.rect.topleft = (50, HEIGHT - 150)
+        self.level_complete = False
+        self.game_over = False  # Сбрасываем флаг проигрыша
+
+    def run(self):
+        running = True
+        while running:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+                # Передаем события в PlatformDrawer
+                self.platform_drawer.handle_event(event)
+
+                # Управление на WASD
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_w:
+                        self.player.jump()
+                    if event.key == pygame.K_a:
+                        self.player.velocity_x = -self.player.speed
+                    if event.key == pygame.K_d:
+                        self.player.velocity_x = self.player.speed
+                    if event.key == pygame.K_ESCAPE:
+                        self.paused = not self.paused
+
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_a and self.player.velocity_x < 0:
+                        self.player.velocity_x = 0
+                    if event.key == pygame.K_d and self.player.velocity_x > 0:
+                        self.player.velocity_x = 0
+
+            if not self.paused and not self.level_complete and not self.game_over:
+                # Обновление
+                self.all_sprites.update()
+
+                for platform in self.platforms:
+                    if self.player.rect.colliderect(platform.rect):
+                        if self.player.velocity_y > 0:  # Если игрок падает
+                            self.player.rect.bottom = platform.rect.top
+                            self.player.on_ground = True
+                            self.player.velocity_y = 0
+                        elif self.player.velocity_y < 0:  # Если игрок движется вверх
+                            self.player.rect.top = platform.rect.bottom
+                            self.player.velocity_y = 0
+
+                # Проверка завершения уровня
+                if self.player.rect.colliderect(self.door.rect):
+                    self.level_complete = True
+                    if self.current_level < len(self.levels) - 1:
+                        self.current_level += 1
+                        self.load_level(self.current_level)
+                    else:
+                        self.show_victory_screen()
+
+                # Проверка проигрыша (игрок упал за экран)
+                if self.player.rect.bottom >= HEIGHT - 10:
+                    self.game_over = True
+                    self.show_game_over_screen()
+
+            # Отрисовка
+            screen.fill(BLACK)
+            self.all_sprites.draw(screen)
+
+            # Отрисовка временной платформы
+            self.platform_drawer.draw(screen)
+
+            if self.level_complete:
+                text = font.render("Уровень пройден!", True, GREEN)
+                screen.blit(text, (WIDTH // 2 - 200, HEIGHT // 2))
+
+            if self.paused:
+                self.draw_pause_menu()
+
+            if self.game_over:
+                self.show_game_over_screen()
+
+            pygame.display.flip()
+
+        pygame.quit()
+        sys.exit()
+
+    def show_game_over_screen(self):
+        game_over_menu = True
+        retry_button = Button("Попробовать снова", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        main_menu_button = Button("В главное меню", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+
+        while game_over_menu:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if retry_button.is_clicked(mouse_pos):
+                        game_over_menu = False
+                        self.load_level(self.current_level)  # Перезагружаем текущий уровень
+                    if main_menu_button.is_clicked(mouse_pos):
+                        game_over_menu = False
+                        self.show_main_menu()
+
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+
+            game_over_text = font.render("Игра окончена!", True, RED)
+            screen.blit(game_over_text, (WIDTH // 2 - 150, HEIGHT // 2 - 150))
+
+            retry_button.check_hover(mouse_pos)
+            main_menu_button.check_hover(mouse_pos)
+
+            retry_button.draw(screen)
+            main_menu_button.draw(screen)
+
+            pygame.display.flip()
+
+    def show_victory_screen(self):
+        victory_menu = True
+        main_menu_button = Button("В главное меню", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+
+        while victory_menu:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if main_menu_button.is_clicked(mouse_pos):
+                        victory_menu = False
+                        self.show_main_menu()
+
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+
+            victory_text = font.render("Победа!", True, GREEN)
+            screen.blit(victory_text, (WIDTH // 2 - 100, HEIGHT // 2 - 150))
+
+            main_menu_button.check_hover(mouse_pos)
+            main_menu_button.draw(screen)
+
+            pygame.display.flip()
+
+    def draw_pause_menu(self):
+        pause_text = font.render("Пауза", True, WHITE)
+        screen.blit(pause_text, (WIDTH // 2 - 100, HEIGHT // 2 - 150))
+
+        continue_button = Button("Продолжить", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        main_menu_button = Button("В главное меню", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+
+        mouse_pos = pygame.mouse.get_pos()
+        continue_button.check_hover(mouse_pos)
+        main_menu_button.check_hover(mouse_pos)
+
+        continue_button.draw(screen)
+        main_menu_button.draw(screen)
+
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if continue_button.is_clicked(mouse_pos):
+                    self.paused = False
+                if main_menu_button.is_clicked(mouse_pos):
+                    self.show_main_menu()
+
+    def show_end_game_menu(self):
+        end_game_menu = True
+        main_menu_button = Button("В главное меню", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        next_level_button = Button("Следующий уровень", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+        settings_button = Button("Настройки", WIDTH // 2, HEIGHT // 2 + 150, GRAY, WHITE)
+
+        while end_game_menu:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if main_menu_button.is_clicked(mouse_pos):
+                        end_game_menu = False
+                        self.show_main_menu()
+                    if next_level_button.is_clicked(mouse_pos):
+                        end_game_menu = False
+                        if self.current_level < len(self.levels) - 1:
+                            self.current_level += 1
+                            self.load_level(self.current_level)
+                        else:
+                            print("Это последний уровень!")
+                    if settings_button.is_clicked(mouse_pos):
+                        self.show_settings()
+
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+
+            main_menu_button.check_hover(mouse_pos)
+            next_level_button.check_hover(mouse_pos)
+            settings_button.check_hover(mouse_pos)
+
+            main_menu_button.draw(screen)
+            next_level_button.draw(screen)
+            settings_button.draw(screen)
+
+            pygame.display.flip()
+
+    def show_settings(self):
+        settings_menu = True
+        back_button = Button("Назад", WIDTH // 2, HEIGHT // 2 + 100, GRAY, WHITE)
+        sound_button = Button("Звук: Вкл" if self.sound_enabled else "Звук: Выкл", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        volume_up_button = Button("Громкость +", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
+        volume_down_button = Button("Громкость -", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+
+        while settings_menu:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if back_button.is_clicked(mouse_pos):
+                        settings_menu = False
+                    if sound_button.is_clicked(mouse_pos):
+                        self.sound_enabled = not self.sound_enabled
+                        sound_button.text = "Звук: Вкл" if self.sound_enabled else "Звук: Выкл"
+                    if volume_up_button.is_clicked(mouse_pos):
+                        self.volume = min(1.0, self.volume + 0.1)
+                    if volume_down_button.is_clicked(mouse_pos):
+                        self.volume = max(0.0, self.volume - 0.1)
+
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+
+            back_button.check_hover(mouse_pos)
+            sound_button.check_hover(mouse_pos)
+            volume_up_button.check_hover(mouse_pos)
+            volume_down_button.check_hover(mouse_pos)
+
+            back_button.draw(screen)
+            sound_button.draw(screen)
+            volume_up_button.draw(screen)
+            volume_down_button.draw(screen)
+
+            pygame.display.flip()
+
+    def show_help(self):
+        help_menu = True
+        back_button = Button("Назад", WIDTH // 2, HEIGHT // 2 + 100, GRAY, WHITE)
+
+        while help_menu:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if back_button.is_clicked(mouse_pos):
+                        help_menu = False
+
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+
+            help_text = small_font.render("Управление: WASD, Прыжок: W", True, WHITE)
+            screen.blit(help_text, (WIDTH // 2 - 150, HEIGHT // 2 - 50))
+
+            back_button.check_hover(mouse_pos)
+            back_button.draw(screen)
+
+            pygame.display.flip()
+
+    def show_level_select(self):
+        level_select_menu = True
+        back_button = Button("Назад", WIDTH // 2, HEIGHT // 2 + 150, GRAY, WHITE)
+        level1_button = Button("Уровень 1", WIDTH // 2, HEIGHT // 2 + 100, GRAY, WHITE)
+        level2_button = Button("Уровень 2", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+        level3_button = Button("Уровень 3", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
+
+        while level_select_menu:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if level1_button.is_clicked(mouse_pos):
+                        level_select_menu = False
+                        self.current_level = 0
+                        self.load_level(self.current_level)
+                        self.run()
+                    if level2_button.is_clicked(mouse_pos):
+                        level_select_menu = False
+                        self.current_level = 1
+                        self.load_level(self.current_level)
+                        self.run()
+                    if level3_button.is_clicked(mouse_pos):
+                        level_select_menu = False
+                        self.current_level = 2
+                        self.load_level(self.current_level)
+                        self.run()
+                    if back_button.is_clicked(mouse_pos):
+                        level_select_menu = False
+
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+
+            level1_button.check_hover(mouse_pos)
+            level2_button.check_hover(mouse_pos)
+            level3_button.check_hover(mouse_pos)
+            back_button.check_hover(mouse_pos)
+
+            level1_button.draw(screen)
+            level2_button.draw(screen)
+            level3_button.draw(screen)
+            back_button.draw(screen)
+
+            pygame.display.flip()
+
+    def show_main_menu(self):
+        main_menu = True
+        play_button = Button("Играть", WIDTH // 2, HEIGHT // 2 - 150, GRAY, WHITE)
+        settings_button = Button("Настройки", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        help_button = Button("Помощь", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+        level_select_button = Button("Выбор уровня", WIDTH // 2, HEIGHT // 2 + 150, GRAY, WHITE)
+
+        while main_menu:
+            clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if play_button.is_clicked(mouse_pos):
+                        main_menu = False
+                        self.current_level = 0
+                        self.load_level(self.current_level)
+                        self.run()
+                    if settings_button.is_clicked(mouse_pos):
+                        self.show_settings()
+                    if help_button.is_clicked(mouse_pos):
+                        self.show_help()
+                    if level_select_button.is_clicked(mouse_pos):
+                        self.show_level_select()
+
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+
+            play_button.check_hover(mouse_pos)
+            settings_button.check_hover(mouse_pos)
+            help_button.check_hover(mouse_pos)
+            level_select_button.check_hover(mouse_pos)
+
+            play_button.draw(screen)
+            settings_button.draw(screen)
+            help_button.draw(screen)
+            level_select_button.draw(screen)
+
+            pygame.display.flip()
+
+
+
+
+from Const_Values import *
+
+
+# Класс платформы в виде линии
+class LinePlatform(pygame.sprite.Sprite):
+    def __init__(self, start_pos, end_pos):
+        super().__init__()
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+        self.image = pygame.Surface((1, 1))  # Создаем минимальную поверхность
+        self.width = 10  # Ширина платформы
+        self.color = (255, 255, 255)  # Цвет платформы
+        self.create_polygon()  # Создаем хитбокс в виде многоугольника
+
+    def create_polygon(self):
+        # Создаем хитбокс (многоугольник) как список вершин
+        self.hitbox_points = [
+            (self.start_pos[0], self.start_pos[1]),
+            (self.end_pos[0], self.end_pos[1]),
+            (self.end_pos[0], self.end_pos[1] + self.width),
+            (self.start_pos[0], self.start_pos[1] + self.width)
+        ]
+        self.rect = pygame.draw.polygon(self.image, self.color,
+                                        self.hitbox_points)  # Эта строка нарисует платформу на минимальной поверхности
+
+    def update(self):
+        # Обновляем позицию хитбокса в зависимости от начальной и конечной позиции
+        self.create_polygon()
+
+    def draw(self, screen):
+        pygame.draw.polygon(screen, self.color, self.hitbox_points)  # Рисуем платформу как многоугольник
+
+    def check_collision(self, player):
+        # Проверяем пересечение с игроком
+        player_hitbox = pygame.Rect(player.rect.x, player.rect.y, player.rect.width, player.rect.height)
+
+        if player_hitbox.collidepolygon(
+                self.hitbox_points):  # Здесь нужно будет реализовать проверку коллизии с многоугольником
+            player.on_ground = True  # Устанавливаем флаг, что игрок на платформе
+            player.rect.y = self.start_pos[1] - player.rect.height  # Устанавливаем позицию игрока на платформу
+
+
+# Добавьте метод collidepolygon для проверки коллизий
+def collidepolygon(rect, polygon):
+    # Проверка пересечения прямоугольника и многоугольника
+    # Первая проверка: ширина и высота прямоугольника
+    if rect.width <= 0 or rect.height <= 0:
+        return False
+
+    # Проверяем пересечение с каждой стороной многоугольника
+    for i in range(len(polygon)):
+        next_i = (i + 1) % len(polygon)
+
+        line_start = polygon[i]
+        line_end = polygon[next_i]
+
+        # Создаём рект для текущей стороны многоугольника
+        line_rect = pygame.Rect(line_start, (line_end[0] - line_start[0], line_end[1] - line_start[1]))
+
+        if rect.colliderect(line_rect):
+            return True  # Если есть пересечение, возвращаем True
+
+    return False  # Если пересечения нет, возвращаем False
+
+
+
+
+
+
+
+
+
+
+
+from Const_Values import *
+
 
 # Класс игрока
 class Player(pygame.sprite.Sprite):
@@ -26,7 +544,7 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.Surface((50, 50))
         self.image.fill(RED)
         self.rect = self.image.get_rect()
-        self.rect.topleft = (50, HEIGHT - 150)  # Спавн в левой части экрана
+        self.rect.topleft = (50, HEIGHT - 150)
         self.velocity_y = 0
         self.velocity_x = 0
         self.on_ground = False
@@ -34,7 +552,10 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         # Гравитация
-        self.velocity_y += 0.5
+        if not self.on_ground:
+            self.velocity_y += 0.5
+
+        # Движение по вертикали
         self.rect.y += self.velocity_y
 
         # Движение по горизонтали
@@ -46,86 +567,8 @@ class Player(pygame.sprite.Sprite):
         if self.rect.right > WIDTH:
             self.rect.right = WIDTH
 
-        # Ограничение падения
-        if self.rect.bottom > HEIGHT:
-            self.rect.bottom = HEIGHT
-            self.on_ground = True
-            self.velocity_y = 0
-
     def jump(self):
         if self.on_ground:
             self.velocity_y = -12
             self.on_ground = False
 
-# Класс платформы
-class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height):
-        super().__init__()
-        self.image = pygame.Surface((width, height))
-        self.image.fill(WHITE)
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
-
-# Основной класс игры
-class Game:
-    def __init__(self):
-        self.player = Player()
-        self.platforms = pygame.sprite.Group()
-        self.all_sprites = pygame.sprite.Group()
-        self.all_sprites.add(self.player)
-
-        # Создание платформ
-        self.platforms.add(Platform(0, HEIGHT - 50, WIDTH, 50))  # Пол
-        self.platforms.add(Platform(200, 400, 100, 20))         # Платформа 1
-        self.platforms.add(Platform(500, 300, 100, 20))         # Платформа 2
-        self.all_sprites.add(self.platforms)
-
-    def run(self):
-        running = True
-        while running:
-            clock.tick(FPS)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-
-                # Управление на WASD
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_w:
-                        self.player.jump()
-                    if event.key == pygame.K_a:
-                        self.player.velocity_x = -self.player.speed
-                    if event.key == pygame.K_d:
-                        self.player.velocity_x = self.player.speed
-
-                if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_a and self.player.velocity_x < 0:
-                        self.player.velocity_x = 0
-                    if event.key == pygame.K_d and self.player.velocity_x > 0:
-                        self.player.velocity_x = 0
-
-            # Обновление
-            self.all_sprites.update()
-
-            # Проверка коллизий с платформами
-            for platform in self.platforms:
-                if self.player.rect.colliderect(platform.rect):
-                    if self.player.velocity_y > 0:  # Если игрок падает
-                        self.player.rect.bottom = platform.rect.top
-                        self.player.on_ground = True
-                        self.player.velocity_y = 0
-                    elif self.player.velocity_y < 0:  # Если игрок движется вверх
-                        self.player.rect.top = platform.rect.bottom
-                        self.player.velocity_y = 0
-
-            # Отрисовка
-            screen.fill(BLACK)
-            self.all_sprites.draw(screen)
-            pygame.display.flip()
-
-        pygame.quit()
-        sys.exit()
-
-# Запуск игры
-if __name__ == "__main__":
-    game = Game()
-    game.run()
