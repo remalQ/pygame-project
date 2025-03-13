@@ -1,4 +1,5 @@
 import pygame
+import pickle
 import os
 
 pygame.init()
@@ -10,20 +11,16 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
 tile_size = 50
-maps = []
 map_Widht, map_Height = WIDTH // tile_size, HEIGHT // tile_size
+maps = [[0] * map_Widht for _ in range(map_Height)]  # Создаем пустую карту
 
-# Инициализация карты
-for row in range(map_Height):
-    line = [0] * map_Widht
-    maps.append(line)
+# Файл для сохранения карты
+map_file = 'map2.pkl'
 
 # Загрузка карты при старте (если файл существует)
-if os.path.exists('map2.txt'):
-    with open('map2.txt', 'r') as file:
-        data = file.readlines()
-        for row in range(min(map_Height, len(data))):
-            maps[row] = list(map(int, data[row].strip().split()))
+if os.path.exists(map_file):
+    with open(map_file, 'rb') as file:
+        maps = pickle.load(file)
 
 running = True
 while running:
@@ -33,20 +30,19 @@ while running:
 
         # Сохранение карты в файл
         if event.type == pygame.KEYDOWN and event.key == pygame.K_s:
-            with open('map2.txt', 'w') as file:
-                for row in maps:
-                    file.write(' '.join(map(str, row)) + '\n')
+            with open(map_file, 'wb') as file:
+                pickle.dump(maps, file)
 
     # Обработка мыши
     mousePx, mousePy = pygame.mouse.get_pos()
-    b1, b2, b3 = pygame.mouse.get_pressed()
+    b1, _, b3 = pygame.mouse.get_pressed()
 
     mouseRow, mouseCol = mousePy // tile_size, mousePx // tile_size
 
     if 0 <= mouseRow < map_Height and 0 <= mouseCol < map_Widht:
-        if b1:
+        if b1:  # ЛКМ - рисуем блок
             maps[mouseRow][mouseCol] = 1
-        elif b3:
+        elif b3:  # ПКМ - стираем блок
             maps[mouseRow][mouseCol] = 0
 
     # Отрисовка карты
