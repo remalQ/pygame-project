@@ -124,6 +124,9 @@ class Player():
 
             if pygame.sprite.spritecollide(self, door_group, False):
                 game_over = 1
+
+            if self.rect.y > HEIGHT:
+                game_over = -1
             self.rect.x += dx
             self.rect.y += dy
 
@@ -201,8 +204,12 @@ while running:
     world.draw()
     door_group.draw(screen)  # Добавлена отрисовка двери
     game_over = player.update(game_over)
+
     if game_over == 1:
         level += 1
+        world = reset_level(level)
+        game_over = 0
+    if game_over == -1:
         world = reset_level(level)
         game_over = 0
     for event in pygame.event.get():
