@@ -1,52 +1,67 @@
+import pygame
+import sys
 from const_value import *
-import pickle
 from os import path
+import pickle
 
 restart_img = pygame.image.load('img/play_btn.png')
 start_img = pygame.image.load('img/play_btn.png')
 exit_img = pygame.image.load('img/exit_btn.png')
 
-def reset_level(level):
-	player.reset(100, HEIGHT - 130)
-	door_group.empty()
-
-	#load in level data and create world
-	if path.exists(f'maps/map{level}.pkl'):
-		pickle_in = open(f'maps/map{level}.pkl', 'rb')
-		world_data = pickle.load(pickle_in)
-	world = Game(world_data)
-
-	return world
-
 class Button():
-	def __init__(self, x, y, image):
-		self.image = image
-		self.rect = self.image.get_rect()
-		self.rect.x = x
-		self.rect.y = y
-		self.clicked = False
+    def __init__(self, text, x, y, color, hover_color):
+        self.text = text
+        self.x = x
+        self.y = y
+        self.color = color
+        self.hover_color = hover_color
+        self.font = pygame.font.SysFont(None, 40)
+        self.rect = pygame.Rect(x - 100, y - 25, 200, 50)
 
-	def draw(self):
-		action = False
+    def draw(self, screen):
+        mouse_pos = pygame.mouse.get_pos()
+        color = self.hover_color if self.rect.collidepoint(mouse_pos) else self.color
+        pygame.draw.rect(screen, color, self.rect)
+        text_surf = self.font.render(self.text, True, BLACK)
+        screen.blit(text_surf, (self.x - text_surf.get_width() // 2, self.y - text_surf.get_height() // 2))
 
-		#get mouse position
-		pos = pygame.mouse.get_pos()
+    def is_clicked(self, mouse_pos):
+        return self.rect.collidepoint(mouse_pos)
 
-		#check mouseover and clicked conditions
-		if self.rect.collidepoint(pos):
-			if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
-				action = True
-				self.clicked = True
+    @staticmethod
+    def show_main_menu():
+        menu_active = True
+        start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        exit_button = Button("Выход", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
 
-		if pygame.mouse.get_pressed()[0] == 0:
-			self.clicked = False
+        while menu_active:
+            screen.fill(BLACK)
+            start_button.draw(screen)
+            exit_button.draw(screen)
 
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if start_button.is_clicked(pygame.mouse.get_pos()):
+                        menu_active = False  # Переход к игре
+                    if exit_button.is_clicked(pygame.mouse.get_pos()):
+                        pygame.quit()
+                        sys.exit()
 
-		#draw button
-		screen.blit(self.image, self.rect)
+            pygame.display.flip()
 
-		return action
+def reset_level(level):
+    player.reset(100, HEIGHT - 130)
+    door_group.empty()
+    if path.exists(f'maps/map{level}.pkl'):
+        pickle_in = open(f'maps/map{level}.pkl', 'rb')
+        world_data = pickle.load(pickle_in)
+    world = Game(world_data)
+    return world
 
+# Класс Игрока
 class Player():
     def __init__(self, x, y):
         self.reset(x, y)
@@ -79,7 +94,6 @@ class Player():
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
 
-            # handle animation
             if self.counter > walk_cooldown:
                 self.counter = 0
                 self.index += 1
@@ -90,25 +104,19 @@ class Player():
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
 
-            # add gravity
             self.vel_y += 1
             if self.vel_y > 10:
                 self.vel_y = 10
             dy += self.vel_y
 
-            # check for collision
             self.in_air = True
             for tile in world.tile_list:
-                # check for collision in x direction
-                if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
                     dx = 0
-                # check for collision in y direction
-                if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                    # check if below the ground i.e. jumping
+                if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
                     if self.vel_y < 0:
                         dy = tile[1].bottom - self.rect.top
                         self.vel_y = 0
-                    # check if above the ground i.e. falling
                     elif self.vel_y >= 0:
                         dy = tile[1].top - self.rect.bottom
                         self.vel_y = 0
@@ -116,7 +124,6 @@ class Player():
 
             if pygame.sprite.spritecollide(self, door_group, False):
                 game_over = 1
-
             self.rect.x += dx
             self.rect.y += dy
 
@@ -138,8 +145,6 @@ class Player():
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.width = self.image.get_width()
-        self.height = self.image.get_height()
         self.vel_y = 0
         self.jumped = False
         self.direction = 0
@@ -148,120 +153,62 @@ class Player():
 class Game():
     def __init__(self, data):
         self.tile_list = []
-
         block_img = pygame.image.load('img/block.png')
 
-        row_count = 0
-        for row in data:
-            col_count = 0
-            for tile in row:
+        for row_count, row in enumerate(data):
+            for col_count, tile in enumerate(row):
                 if tile == 1:
                     img = pygame.transform.scale(block_img, (tile_size, tile_size))
-                    img_rect = img.get_rect()
-                    img_rect.x = col_count * tile_size
-                    img_rect.y = row_count * tile_size
-                    tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    img_rect = img.get_rect(topleft=(col_count * tile_size, row_count * tile_size))
+                    self.tile_list.append((img, img_rect))
                 if tile == 2:
                     door = Door(col_count * tile_size, row_count * tile_size - (tile_size // 2))
                     door_group.add(door)
-                col_count += 1
-            row_count += 1
 
     def draw(self):
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
 
 class Door(pygame.sprite.Sprite):
-	def __init__(self, x, y):
-		pygame.sprite.Sprite.__init__(self)
-		img = pygame.image.load('img/door.png')
-		self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
-		self.rect = self.image.get_rect()
-		self.rect.x = x
-		self.rect.y = y
+    def __init__(self, x, y):
+        super().__init__()
+        img = pygame.image.load('img/door.png')
+        self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
+        self.rect = self.image.get_rect(topleft=(x, y))
 
-
-
-'''world_data = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-]
-'''
-
-player = Player(100, HEIGHT - 130)
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption('Платформер')
+clock = pygame.time.Clock()
 door_group = pygame.sprite.Group()
 
+game_over = 0
+level = 1
 world_data = []
-
 if path.exists(f'maps/map{level}.pkl'):
-	pickle_in = open(f'maps/map{level}.pkl', 'rb')
-	world_data = pickle.load(pickle_in)
+    with open(f'maps/map{level}.pkl', 'rb') as pickle_in:
+        world_data = pickle.load(pickle_in)
+
 world = Game(world_data)
-
-
-
-restart_button = Button(WIDTH // 2 - 50, HEIGHT // 2 + 100, restart_img)
-start_button = Button(WIDTH // 2 - 350, HEIGHT // 2, start_img)
-exit_button = Button(WIDTH // 2 + 150, HEIGHT // 2, exit_img)
+Button.show_main_menu()
+player = Player(100, HEIGHT - 130)
 
 running = True
 while running:
     clock.tick(FPC)
-    screen.blit(bg_img, (0, 0))
+    screen.fill((0, 0, 0))
 
-    if main_menu == True:
-        if exit_button.draw():
-            run = False
-        if start_button.draw():
-            main_menu = False
-    else:
-        world.draw()
-
-        door_group.draw(screen)
-
-        game_over = player.update(game_over)
-
-        # if player has died
-        if game_over == -1:
-            if restart_button.draw():
-                world_data = []
-                world = reset_level(level)
-                game_over = 0
-
-        # if player has completed the level
-        if game_over == 1:
-            # reset game and go to next level
-            level += 1
-            if level <= max_levels:
-                # reset level
-                world_data = []
-                world = reset_level(level)
-                game_over = 0
-            else:
-                if restart_button.draw():
-                    level = 1
-                    # reset level
-                    world_data = []
-                    world = reset_level(level)
-                    game_over = 0
-
+    world.draw()
+    door_group.draw(screen)  # Добавлена отрисовка двери
+    game_over = player.update(game_over)
+    if game_over == 1:
+        level += 1
+        world = reset_level(level)
+        game_over = 0
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-    pygame.display.update()
+
+    pygame.display.flip()
+
 pygame.quit()
