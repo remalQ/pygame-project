@@ -3,7 +3,7 @@ import sys
 from const_value import *
 from os import path
 import pickle
-'''исправить прыжок и добавить переходы уровней (играть - выбор увроня- сделать недоступными уровни которые не пройдены'''
+
 restart_img = pygame.image.load('img/play_btn.png')
 start_img = pygame.image.load('img/play_btn.png')
 exit_img = pygame.image.load('img/exit_btn.png')
@@ -28,27 +28,37 @@ class Button():
     def is_clicked(self, mouse_pos):
         return self.rect.collidepoint(mouse_pos)
 
-    @staticmethod
-    def show_main_menu():
+class LevelMenu():
+    def __init__(self):
+        self.buttons = []
+        self.max_level = 1  # Максимальный пройденный уровень
+
+    def show(self, screen):
         menu_active = True
-        start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
-        exit_button = Button("Выход", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+        self.buttons = []
+        for i in range(1, 6):  # Предположим, у нас 5 уровней
+            if i <= self.max_level:
+                color = GRAY
+                hover_color = WHITE
+            else:
+                color = DARK_GRAY
+                hover_color = DARK_GRAY
+            button = Button(f"Уровень {i}", WIDTH // 2, HEIGHT // 2 - 100 + i * 50, color, hover_color)
+            self.buttons.append(button)
 
         while menu_active:
             screen.fill(BLACK)
-            start_button.draw(screen)
-            exit_button.draw(screen)
+            for button in self.buttons:
+                button.draw(screen)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if start_button.is_clicked(pygame.mouse.get_pos()):
-                        menu_active = False
-                    if exit_button.is_clicked(pygame.mouse.get_pos()):
-                        pygame.quit()
-                        sys.exit()
+                    for i, button in enumerate(self.buttons):
+                        if button.is_clicked(pygame.mouse.get_pos()) and i + 1 <= self.max_level:
+                            return i + 1  # Возвращаем выбранный уровень
 
             pygame.display.flip()
 
@@ -193,8 +203,61 @@ if path.exists(f'maps/map{level}.pkl'):
         world_data = pickle.load(pickle_in)
 
 world = Game(world_data)
-Button.show_main_menu()
 player = Player(100, HEIGHT - 130)
+
+# Главное меню
+def show_main_menu():
+    menu_active = True
+    start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+    exit_button = Button("Выход", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+
+    while menu_active:
+        screen.fill(BLACK)
+        start_button.draw(screen)
+        exit_button.draw(screen)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if start_button.is_clicked(pygame.mouse.get_pos()):
+                    level_menu = LevelMenu()
+                    level = level_menu.show(screen)
+                    if level:  # Если уровень выбран, начинаем игру
+                        world = reset_level(level)
+                        menu_active = False
+                if exit_button.is_clicked(pygame.mouse.get_pos()):
+                    pygame.quit()
+                    sys.exit()
+
+        pygame.display.flip()
+
+# Меню паузы
+def show_pause_menu():
+    pause_active = True
+    continue_button = Button("Продолжить", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+    main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+
+    while pause_active:
+        screen.fill(BLACK)
+        continue_button.draw(screen)
+        main_menu_button.draw(screen)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if continue_button.is_clicked(pygame.mouse.get_pos()):
+                    pause_active = False  # Продолжить игру
+                if main_menu_button.is_clicked(pygame.mouse.get_pos()):
+                    show_main_menu()  # Вернуться в главное меню
+                    pause_active = False
+
+        pygame.display.flip()
+
+show_main_menu()
 
 running = True
 while running:
@@ -212,9 +275,13 @@ while running:
     if game_over == -1:
         world = reset_level(level)
         game_over = 0
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:  # Обработка нажатия ESC
+                show_pause_menu()  # Открыть меню паузы
 
     pygame.display.flip()
 
