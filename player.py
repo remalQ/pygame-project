@@ -3,7 +3,7 @@ import sys
 from const_value import *
 from os import path
 import pickle
-
+'''исправить прыжок и добавить переходы уровней (играть - выбор увроня- сделать недоступными уровни которые не пройдены'''
 restart_img = pygame.image.load('img/play_btn.png')
 start_img = pygame.image.load('img/play_btn.png')
 exit_img = pygame.image.load('img/exit_btn.png')
@@ -45,7 +45,7 @@ class Button():
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if start_button.is_clicked(pygame.mouse.get_pos()):
-                        menu_active = False  # Переход к игре
+                        menu_active = False
                     if exit_button.is_clicked(pygame.mouse.get_pos()):
                         pygame.quit()
                         sys.exit()
@@ -73,7 +73,7 @@ class Player():
 
         if game_over == 0:
             key = pygame.key.get_pressed()
-            if key[pygame.K_SPACE] and self.jumped == False:
+            if key[pygame.K_SPACE] and self.jumped == False and self.in_air == False:
                 self.vel_y = -15
                 self.jumped = True
             if key[pygame.K_SPACE] == False:
@@ -156,7 +156,7 @@ class Player():
 class Game():
     def __init__(self, data):
         self.tile_list = []
-        block_img = pygame.image.load('img/block.png')
+        block_img = pygame.image.load('img/platform1.png')
 
         for row_count, row in enumerate(data):
             for col_count, tile in enumerate(row):
@@ -199,7 +199,7 @@ player = Player(100, HEIGHT - 130)
 running = True
 while running:
     clock.tick(FPC)
-    screen.fill((0, 0, 0))
+    screen.fill((255, 255, 255))
 
     world.draw()
     door_group.draw(screen)  # Добавлена отрисовка двери
