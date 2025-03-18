@@ -1,7 +1,7 @@
 import pygame
 import sys
 from const_value import *
-from os import path
+from os import path, listdir
 import pickle
 
 restart_img = pygame.image.load('img/play_btn.png')
@@ -31,19 +31,12 @@ class Button():
 class LevelMenu():
     def __init__(self):
         self.buttons = []
-        self.max_level = 1  # Максимальный пройденный уровень
 
     def show(self, screen):
         menu_active = True
         self.buttons = []
-        for i in range(1, 6):  # Предположим, у нас 5 уровней
-            if i <= self.max_level:
-                color = GRAY
-                hover_color = WHITE
-            else:
-                color = DARK_GRAY
-                hover_color = DARK_GRAY
-            button = Button(f"Уровень {i}", WIDTH // 2, HEIGHT // 2 - 100 + i * 50, color, hover_color)
+        for i in range(1, total_levels + 1):  # Используем общее количество уровней
+            button = Button(f"Уровень {i}", WIDTH // 2, HEIGHT // 2 - 100 + i * 50, GRAY, WHITE)
             self.buttons.append(button)
 
         while menu_active:
@@ -57,7 +50,7 @@ class LevelMenu():
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for i, button in enumerate(self.buttons):
-                        if button.is_clicked(pygame.mouse.get_pos()) and i + 1 <= self.max_level:
+                        if button.is_clicked(pygame.mouse.get_pos()):
                             return i + 1  # Возвращаем выбранный уровень
 
             pygame.display.flip()
@@ -195,6 +188,9 @@ pygame.display.set_caption('Платформер')
 clock = pygame.time.Clock()
 door_group = pygame.sprite.Group()
 
+# Определение общего количества уровней
+total_levels = len([f for f in listdir('maps') if f.startswith('map') and f.endswith('.pkl')])
+
 game_over = 0
 level = 1
 world_data = []
@@ -223,8 +219,10 @@ def show_main_menu():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if start_button.is_clicked(pygame.mouse.get_pos()):
                     level_menu = LevelMenu()
-                    level = level_menu.show(screen)
-                    if level:  # Если уровень выбран, начинаем игру
+                    selected_level = level_menu.show(screen)
+                    if selected_level:  # Если уровень выбран, начинаем игру
+                        global level, world
+                        level = selected_level
                         world = reset_level(level)
                         menu_active = False
                 if exit_button.is_clicked(pygame.mouse.get_pos()):
@@ -257,21 +255,50 @@ def show_pause_menu():
 
         pygame.display.flip()
 
+# Экран "Игра пройдена"
+def show_game_completed_screen():
+    completed_active = True
+    main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
+
+    while completed_active:
+        screen.fill(BLACK)
+        font = pygame.font.SysFont(None, 60)
+        text = font.render("Игра пройдена!", True, WHITE)
+        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - 100))
+        main_menu_button.draw(screen)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if main_menu_button.is_clicked(pygame.mouse.get_pos()):
+                    show_main_menu()  # Вернуться в главное меню
+                    completed_active = False
+
+        pygame.display.flip()
+
 show_main_menu()
 
 running = True
 while running:
-    clock.tick(FPC)
+    clock.tick(FPS)
     screen.fill((255, 255, 255))
 
     world.draw()
-    door_group.draw(screen)  # Добавлена отрисовка двери
+    door_group.draw(screen)
     game_over = player.update(game_over)
 
     if game_over == 1:
-        level += 1
-        world = reset_level(level)
-        game_over = 0
+        if level < total_levels:
+            level += 1
+            world = reset_level(level)
+            game_over = 0
+        else:
+            show_game_completed_screen()  # Все уровни пройдены
+            # Не сбрасываем уровень на 1, просто возвращаемся в главное меню
+            game_over = 0
+
     if game_over == -1:
         world = reset_level(level)
         game_over = 0
