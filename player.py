@@ -4,10 +4,6 @@ from const_value import *
 from os import path, listdir
 import pickle
 
-restart_img = pygame.image.load('img/play_btn.png')
-start_img = pygame.image.load('img/play_btn.png')
-exit_img = pygame.image.load('img/exit_btn.png')
-
 class Button():
     def __init__(self, text, x, y, color, hover_color):
         self.text = text
