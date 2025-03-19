@@ -4,6 +4,7 @@ from const_value import *
 from os import path, listdir
 import pickle
 
+# Класс кнопки
 class Button():
     def __init__(self, text, x, y, color, hover_color):
         self.text = text
@@ -24,14 +25,16 @@ class Button():
     def is_clicked(self, mouse_pos):
         return self.rect.collidepoint(mouse_pos)
 
+# Класс меню выбора уровня
 class LevelMenu():
-    def __init__(self):
+    def __init__(self, total_levels):
         self.buttons = []
+        self.total_levels = total_levels
 
     def show(self, screen):
         menu_active = True
         self.buttons = []
-        for i in range(1, total_levels + 1):  # Используем общее количество уровней
+        for i in range(1, self.total_levels + 1):
             button = Button(f"Уровень {i}", WIDTH // 2, HEIGHT // 2 - 100 + i * 50, GRAY, WHITE)
             self.buttons.append(button)
 
@@ -51,21 +54,12 @@ class LevelMenu():
 
             pygame.display.flip()
 
-def reset_level(level):
-    player.reset(100, HEIGHT - 130)
-    door_group.empty()
-    if path.exists(f'maps/map{level}.pkl'):
-        pickle_in = open(f'maps/map{level}.pkl', 'rb')
-        world_data = pickle.load(pickle_in)
-    world = Game(world_data)
-    return world
-
-# Класс Игрока
+# Класс игрока
 class Player():
     def __init__(self, x, y):
         self.reset(x, y)
 
-    def update(self, game_over):
+    def update(self, game_over, world, door_group, screen):
         dx = 0
         dy = 0
         walk_cooldown = 5
@@ -152,9 +146,19 @@ class Player():
         self.direction = 0
         self.in_air = True
 
-class Game():
-    def __init__(self, data):
+# Класс двери
+class Door(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        img = pygame.image.load('img/door.png')
+        self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+# Класс мира (уровня)
+class World():
+    def __init__(self, data, door_group):
         self.tile_list = []
+        self.door_group = door_group
         block_img = pygame.image.load('img/platform1.png')
 
         for row_count, row in enumerate(data):
@@ -165,147 +169,147 @@ class Game():
                     self.tile_list.append((img, img_rect))
                 if tile == 2:
                     door = Door(col_count * tile_size, row_count * tile_size - (tile_size // 2))
-                    door_group.add(door)
+                    self.door_group.add(door)
 
-    def draw(self):
+    def draw(self, screen):
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
+        self.door_group.draw(screen)
 
-class Door(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        img = pygame.image.load('img/door.png')
-        self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
-        self.rect = self.image.get_rect(topleft=(x, y))
+# Класс игры
+class Game():
+    def __init__(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        pygame.display.set_caption('Платформер')
+        self.clock = pygame.time.Clock()
+        self.door_group = pygame.sprite.Group()  # Инициализация группы дверей
+        self.total_levels = len([f for f in listdir('maps') if f.startswith('map') and f.endswith('.pkl')])
+        self.level = 1
+        self.world_data = []
+        self.load_level(self.level)
+        self.player = Player(100, HEIGHT - 130)
+        self.game_over = 0
 
-pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('Платформер')
-clock = pygame.time.Clock()
-door_group = pygame.sprite.Group()
+    def load_level(self, level):
+        if path.exists(f'maps/map{level}.pkl'):
+            with open(f'maps/map{level}.pkl', 'rb') as pickle_in:
+                self.world_data = pickle.load(pickle_in)
+        self.world = World(self.world_data, self.door_group)  # Передаем door_group в World
 
-# Определение общего количества уровней
-total_levels = len([f for f in listdir('maps') if f.startswith('map') and f.endswith('.pkl')])
+    def reset_level(self, level):
+        self.player.reset(100, HEIGHT - 130)
+        self.door_group.empty()  # Очищаем группу дверей перед загрузкой нового уровня
+        self.load_level(level)
 
-game_over = 0
-level = 1
-world_data = []
-if path.exists(f'maps/map{level}.pkl'):
-    with open(f'maps/map{level}.pkl', 'rb') as pickle_in:
-        world_data = pickle.load(pickle_in)
+    def show_main_menu(self):
+        menu_active = True
+        start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        exit_button = Button("Выход", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
 
-world = Game(world_data)
-player = Player(100, HEIGHT - 130)
+        while menu_active:
+            self.screen.fill(BLACK)
+            start_button.draw(self.screen)
+            exit_button.draw(self.screen)
 
-# Главное меню
-def show_main_menu():
-    menu_active = True
-    start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
-    exit_button = Button("Выход", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
-
-    while menu_active:
-        screen.fill(BLACK)
-        start_button.draw(screen)
-        exit_button.draw(screen)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if start_button.is_clicked(pygame.mouse.get_pos()):
-                    level_menu = LevelMenu()
-                    selected_level = level_menu.show(screen)
-                    if selected_level:  # Если уровень выбран, начинаем игру
-                        global level, world
-                        level = selected_level
-                        world = reset_level(level)
-                        menu_active = False
-                if exit_button.is_clicked(pygame.mouse.get_pos()):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if start_button.is_clicked(pygame.mouse.get_pos()):
+                        level_menu = LevelMenu(self.total_levels)
+                        selected_level = level_menu.show(self.screen)
+                        if selected_level:
+                            self.level = selected_level
+                            self.reset_level(self.level)
+                            menu_active = False
+                    if exit_button.is_clicked(pygame.mouse.get_pos()):
+                        pygame.quit()
+                        sys.exit()
 
-        pygame.display.flip()
+            pygame.display.flip()
 
-# Меню паузы
-def show_pause_menu():
-    pause_active = True
-    continue_button = Button("Продолжить", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
-    main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
+    def show_pause_menu(self):
+        pause_active = True
+        continue_button = Button("Продолжить", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
+        main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
 
-    while pause_active:
-        screen.fill(BLACK)
-        continue_button.draw(screen)
-        main_menu_button.draw(screen)
+        while pause_active:
+            self.screen.fill(BLACK)
+            continue_button.draw(self.screen)
+            main_menu_button.draw(self.screen)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if continue_button.is_clicked(pygame.mouse.get_pos()):
-                    pause_active = False  # Продолжить игру
-                if main_menu_button.is_clicked(pygame.mouse.get_pos()):
-                    show_main_menu()  # Вернуться в главное меню
-                    pause_active = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if continue_button.is_clicked(pygame.mouse.get_pos()):
+                        pause_active = False
+                    if main_menu_button.is_clicked(pygame.mouse.get_pos()):
+                        self.show_main_menu()
+                        pause_active = False
 
-        pygame.display.flip()
+            pygame.display.flip()
 
-# Экран "Игра пройдена"
-def show_game_completed_screen():
-    completed_active = True
-    main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
+    def show_game_completed_screen(self):
+        completed_active = True
+        main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
 
-    while completed_active:
-        screen.fill(BLACK)
-        font = pygame.font.SysFont(None, 60)
-        text = font.render("Игра пройдена!", True, WHITE)
-        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - 100))
-        main_menu_button.draw(screen)
+        while completed_active:
+            self.screen.fill(BLACK)
+            font = pygame.font.SysFont(None, 60)
+            text = font.render("Игра пройдена!", True, WHITE)
+            self.screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - 100))
+            main_menu_button.draw(self.screen)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if main_menu_button.is_clicked(pygame.mouse.get_pos()):
-                    show_main_menu()  # Вернуться в главное меню
-                    completed_active = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if main_menu_button.is_clicked(pygame.mouse.get_pos()):
+                        self.show_main_menu()
+                        completed_active = False
 
-        pygame.display.flip()
+            pygame.display.flip()
 
-show_main_menu()
+    def run(self):
+        self.show_main_menu()
 
-running = True
-while running:
-    clock.tick(FPS)
-    screen.fill((255, 255, 255))
+        running = True
+        while running:
+            self.clock.tick(FPS)
+            self.screen.fill((255, 255, 255))
 
-    world.draw()
-    door_group.draw(screen)
-    game_over = player.update(game_over)
+            self.world.draw(self.screen)
+            self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.screen)
 
-    if game_over == 1:
-        if level < total_levels:
-            level += 1
-            world = reset_level(level)
-            game_over = 0
-        else:
-            show_game_completed_screen()  # Все уровни пройдены
-            # Не сбрасываем уровень на 1, просто возвращаемся в главное меню
-            game_over = 0
+            if self.game_over == 1:
+                if self.level < self.total_levels:
+                    self.level += 1
+                    self.reset_level(self.level)
+                    self.game_over = 0
+                else:
+                    self.show_game_completed_screen()
+                    self.game_over = 0
 
-    if game_over == -1:
-        world = reset_level(level)
-        game_over = 0
+            if self.game_over == -1:
+                self.reset_level(self.level)
+                self.game_over = 0
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:  # Обработка нажатия ESC
-                show_pause_menu()  # Открыть меню паузы
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.show_pause_menu()
 
-    pygame.display.flip()
+            pygame.display.flip()
 
-pygame.quit()
+        pygame.quit()
+
+if __name__ == "__main__":
+    game = Game()
+    game.run()
