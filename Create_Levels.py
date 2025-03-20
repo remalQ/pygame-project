@@ -10,6 +10,7 @@ class Level:
     def get_objects(self):
         return self.platforms, self.door
 
+
 class TimedLevel(Level):
     def __init__(self, platforms, door_position, time_limit):
         super().__init__(platforms, door_position)
@@ -23,6 +24,7 @@ class TimedLevel(Level):
 
     def is_time_up(self):
         return self.get_remaining_time() <= 0
+
 
 # Пример создания уровней
 level_1 = Level(

@@ -16,8 +16,8 @@ class Game:
 
         # Уровни
         self.levels = [
-            level_1,  # Уровень 1
-            level_2,# Уровень 2
+            level_1,
+            level_2,
             level_3,
         ]
         self.current_level = 0
@@ -80,31 +80,8 @@ class Game:
                         self.player.velocity_x = 0
 
             if not self.paused and not self.level_complete and not self.game_over:
-                # Обновление
-                self.all_sprites.update()
 
-                self.player.on_ground = False  # Сбрасываем состояние на False перед каждой проверкой
-
-                # Проверка столкновений с платформами
-                for platform in self.platforms:
-                    if self.player.rect.colliderect(platform.rect):
-                        if self.player.velocity_y > 0 and self.player.rect.bottom - self.player.velocity_y <= platform.rect.top:
-                            # Игрок стоит на платформе
-                            self.player.rect.bottom = platform.rect.top
-                            self.player.on_ground = True
-                            self.player.velocity_y = 0
-                        elif self.player.velocity_y < 0 and self.player.rect.top - self.player.velocity_y >= platform.rect.bottom:
-                            # Игрок ударяется головой
-                            self.player.rect.top = platform.rect.bottom
-                            self.player.velocity_y = 0
-                        elif self.player.velocity_x > 0 and self.player.rect.right - self.player.velocity_x <= platform.rect.left:
-                            # Столкновение справа
-                            self.player.rect.right = platform.rect.left
-                            self.player.velocity_x = 0
-                        elif self.player.velocity_x < 0 and self.player.rect.left - self.player.velocity_x >= platform.rect.right:
-                            # Столкновение слева
-                            self.player.rect.left = platform.rect.right
-                            self.player.velocity_x = 0
+                self.player.update(self.platforms)
 
                 # Проверка завершения уровня
                 if self.player.rect.colliderect(self.door.rect):
