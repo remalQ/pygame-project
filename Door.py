@@ -1,11 +1,11 @@
 from Const_Values import *
 
 
-# Класс двери
 class Door(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.Surface((50, 100))
-        self.image.fill(GREEN)
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
+        img = pygame.image.load('img/door.png')
+        self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+
