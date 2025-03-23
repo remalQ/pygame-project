@@ -7,32 +7,51 @@ from Button import Button
 from World import World
 from Level_Menu import LevelMenu
 
+"""
+Класс Game
+
+Отвечает за управление игровым процессом: загрузку уровней, отображение меню, обработку событий и обновление состояния игры.
+"""
 
 class Game:
+    ## \brief Конструктор класса
+    #
+    # Инициализирует основные параметры игры, загружает первый уровень.
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption('Платформер')
         self.clock = pygame.time.Clock()
-        self.door_group = pygame.sprite.Group()  # Инициализация группы дверей
-        self.total_levels = len([f for f in listdir('maps') if f.startswith('map') and f.endswith('.pkl')])
-        self.level = 1
-        self.world_data = []
+        self.door_group = pygame.sprite.Group()  # Группа дверей
+        self.total_levels = len([f for f in listdir('maps') if f.startswith('map') and f.endswith('.pkl')])  # Подсчет уровней
+        self.level = 1  # Текущий уровень
+        self.world_data = []  # Данные текущего уровня
         self.load_level(self.level)
-        self.player = Player(100, HEIGHT - 130)
-        self.game_over = 0
+        self.player = Player(100, HEIGHT - 130)  # Создание игрока
+        self.game_over = 0  # Статус игры (0 - идет, 1 - пройден, -1 - проигран)
 
+    ## \brief Загрузка уровня
+    #
+    # Загружает данные уровня из файла.
+    # @param level Номер загружаемого уровня.
     def load_level(self, level):
         if path.exists(f'maps/map{level}.pkl'):
             with open(f'maps/map{level}.pkl', 'rb') as pickle_in:
                 self.world_data = pickle.load(pickle_in)
-        self.world = World(self.world_data, self.door_group)  # Передаем door_group в World
+        self.world = World(self.world_data, self.door_group)  # Создаем мир с дверями
 
+    ## \brief Сброс уровня
+    #
+    # Перезапускает текущий уровень, сбрасывает положение игрока и очищает двери.
+    # @param level Номер уровня, который нужно загрузить заново.
     def reset_level(self, level):
         self.player.reset(100, HEIGHT - 130)
-        self.door_group.empty()  # Очищаем группу дверей перед загрузкой нового уровня
+        self.door_group.empty()  # Очищаем двери перед загрузкой нового уровня
         self.load_level(level)
 
+    ## \brief Главное меню
+    #
+    # Отображает главное меню с возможностью начать игру или выйти.
     def show_main_menu(self):
         menu_active = True
         start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
@@ -61,6 +80,9 @@ class Game:
 
             pygame.display.flip()
 
+    ## \brief Меню паузы
+    #
+    # Отображает меню паузы с возможностью продолжить игру или выйти в главное меню.
     def show_pause_menu(self):
         pause_active = True
         continue_button = Button("Продолжить", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
@@ -84,6 +106,9 @@ class Game:
 
             pygame.display.flip()
 
+    ## \brief Экран завершения игры
+    #
+    # Отображает экран завершения игры, если все уровни пройдены.
     def show_game_completed_screen(self):
         completed_active = True
         main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
@@ -106,6 +131,9 @@ class Game:
 
             pygame.display.flip()
 
+    ## \brief Основной цикл игры
+    #
+    # Запускает игровой процесс, обрабатывает события и обновляет экран.
     def run(self):
         self.show_main_menu()
 
@@ -114,9 +142,10 @@ class Game:
             self.clock.tick(FPS)
             self.screen.fill((255, 255, 255))
 
-            self.world.draw(self.screen)
+            self.world.draw(self.screen)  # Отрисовка игрового мира
             self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.screen)
 
+            # Проверяем состояние игры
             if self.game_over == 1:
                 if self.level < self.total_levels:
                     self.level += 1
@@ -130,6 +159,7 @@ class Game:
                 self.reset_level(self.level)
                 self.game_over = 0
 
+            # Обработка событий
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -140,5 +170,3 @@ class Game:
             pygame.display.flip()
 
         pygame.quit()
-
-

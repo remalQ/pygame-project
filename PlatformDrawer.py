@@ -1,13 +1,26 @@
 from LinePlatform import *
 
+"""
+Класс PlatformDrawer используется для рисования платформ с помощью мыши.
+Он добавляет новую механику для определенного уровня, позволяя игроку создавать
+линии-платформы в реальном времени.
+"""
 
 class PlatformDrawer:
+    ## \brief Конструктор класса
+    #
+    # Инициализирует объект, отвечающий за рисование платформ.
+    # @param game Экземпляр игры, содержащий группы спрайтов и платформ
     def __init__(self, game):
         self.game = game
         self.drawing = False
         self.start_pos = None
         self.temp_line = None
 
+    ## \brief Метод handle_event()
+    #
+    # Обрабатывает события мыши для создания платформ.
+    # @param event Событие Pygame
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Левая кнопка мыши
@@ -33,6 +46,10 @@ class PlatformDrawer:
                 end_pos = event.pos
                 self.temp_line.update_position(self.start_pos, end_pos)  # Обновляем временную линию
 
+    ## \brief Метод draw()
+    #
+    # Отрисовывает все платформы на экране.
+    # @param screen Экран, на котором будут отображаться платформы
     def draw(self, screen):
         for platform in self.game.platforms:
             platform.draw(screen)

@@ -1,17 +1,30 @@
 from Const_Values import *
 
+"""
+Класс LinePlatform
 
-# Класс платформы в виде линии
+Этот класс представляет платформу в виде линии. 
+Используется для создания платформ, которые игрок может рисовать во время игры.
+"""
+
 class LinePlatform(pygame.sprite.Sprite):
+    ## \brief Конструктор класса
+    #
+    # Создает линейную платформу между двумя точками.
+    # @param start_pos Начальная точка платформы (x, y).
+    # @param end_pos Конечная точка платформы (x, y).
     def __init__(self, start_pos, end_pos):
         super().__init__()
-        self.start_pos = start_pos
-        self.end_pos = end_pos
-        self.image = pygame.Surface((1, 1))  # Создаем минимальную поверхность
-        self.width = 10  # Ширина платформы
-        self.color = (255, 255, 255)  # Цвет платформы
-        self.create_polygon()  # Создаем хитбокс в виде многоугольника
+        self.start_pos = start_pos  # Начальная позиция линии
+        self.end_pos = end_pos  # Конечная позиция линии
+        self.image = pygame.Surface((1, 1))  # Минимальная поверхность, т.к. рисование будет через pygame.draw
+        self.width = 10  # Толщина платформы
+        self.color = (255, 255, 255)  # Цвет платформы (белый)
+        self.create_polygon()  # Создание хитбокса платформы
 
+    ## \brief Метод создания хитбокса платформы
+    #
+    # Создает многоугольник, представляющий платформу, и её ограничивающий прямоугольник.
     def create_polygon(self):
         self.hitbox_points = [
             (self.start_pos[0], self.start_pos[1]),
@@ -20,7 +33,7 @@ class LinePlatform(pygame.sprite.Sprite):
             (self.start_pos[0], self.start_pos[1] + self.width)
         ]
 
-        # Создаем bounding box
+        # Определяем границы (bounding box) платформы
         min_x = min(self.start_pos[0], self.end_pos[0])
         min_y = min(self.start_pos[1], self.end_pos[1])
         max_x = max(self.start_pos[0], self.end_pos[0])
@@ -28,28 +41,43 @@ class LinePlatform(pygame.sprite.Sprite):
 
         self.rect = pygame.Rect(min_x, min_y, max_x - min_x, max_y - min_y)
 
+    ## \brief Метод обновления позиции платформы
+    #
+    # Позволяет изменять положение платформы, обновляя её хитбокс.
+    # @param start_pos Новая начальная точка (x, y).
+    # @param end_pos Новая конечная точка (x, y).
     def update_position(self, start_pos, end_pos):
         self.start_pos = start_pos
         self.end_pos = end_pos
-        self.create_polygon()  # Пересоздаем хитбокс при изменении позиции
+        self.create_polygon()  # Обновляем хитбокс платформы
 
+    ## \brief Метод отрисовки платформы
+    #
+    # Отображает платформу как многоугольник на экране.
+    # @param screen Экран, на котором будет нарисована платформа.
     def draw(self, screen):
-        pygame.draw.polygon(screen, self.color, self.hitbox_points)  # Рисуем платформу как многоугольник
+        pygame.draw.polygon(screen, self.color, self.hitbox_points)  # Рисуем платформу
 
+    ## \brief Метод проверки коллизии с игроком
+    #
+    # Проверяет, находится ли игрок на платформе.
+    # @param player Игрок, для которого проверяется коллизия.
     def check_collision(self, player):
-        # Проверяем пересечение с игроком
         player_hitbox = pygame.Rect(player.rect.x, player.rect.y, player.rect.width, player.rect.height)
 
-        if player_hitbox.collidepolygon(
-                self.hitbox_points):  # Здесь нужно будет реализовать проверку коллизии с многоугольником
+        if collidepolygon(player_hitbox, self.hitbox_points):  # Проверяем пересечение с платформой
             player.on_ground = True  # Устанавливаем флаг, что игрок на платформе
-            player.rect.y = self.start_pos[1] - player.rect.height  # Устанавливаем позицию игрока на платформу
+            player.rect.y = self.start_pos[1] - player.rect.height  # Корректируем положение игрока
 
 
-# Добавьте метод collidepolygon для проверки коллизий
+## \brief Функция проверки пересечения прямоугольника и многоугольника
+#
+# Проверяет, пересекается ли прямоугольник (игрок) с многоугольником (платформой).
+# @param rect Прямоугольник (pygame.Rect), представляющий игрока.
+# @param polygon Список точек многоугольника (платформы).
+# @return True, если есть пересечение, иначе False.
 def collidepolygon(rect, polygon):
-    # Проверка пересечения прямоугольника и многоугольника
-    # Первая проверка: ширина и высота прямоугольника
+    # Проверка ширины и высоты прямоугольника
     if rect.width <= 0 or rect.height <= 0:
         return False
 
@@ -60,10 +88,10 @@ def collidepolygon(rect, polygon):
         line_start = polygon[i]
         line_end = polygon[next_i]
 
-        # Создаём рект для текущей стороны многоугольника
+        # Создаем прямоугольник для текущей стороны многоугольника
         line_rect = pygame.Rect(line_start, (line_end[0] - line_start[0], line_end[1] - line_start[1]))
 
-        if rect.colliderect(line_rect):
-            return True  # Если есть пересечение, возвращаем True
+        if rect.colliderect(line_rect):  # Проверяем пересечение
+            return True
 
-    return False  # Если пересечения нет, возвращаем False
+    return False  # Если пересечений нет

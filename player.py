@@ -1,10 +1,33 @@
+"""@package Player
+Класс игрока
+"""
+
 from Const_Values import *
 
+## \brief Описание класса
+#
+# В этом классе у главного героя прописаны все основные механики его поведения
+# относительно окружающего мира
 
 class Player:
+    ## \brief Конструктор класса
+    #
+    # Инициализирует объект игрока и вызывает метод reset для установки начальных параметров
+    # @param x Начальная координата X
+    # @param y Начальная координата Y
     def __init__(self, x, y):
         self.reset(x, y)
 
+    ## \brief Метод update()
+    #
+    # Метод update изменяет состояние игрока каждый игровой тик.
+    # Обрабатывает нажатия клавиш, движение и анимацию игрока.
+    # Реализует базовую систему коллизий с платформами.
+    # @param game_over Статус игры (0 - игра продолжается, 1 - победа, -1 - поражение)
+    # @param world Игровой мир, содержащий платформы
+    # @param door_group Группа дверей, используемых для завершения уровня
+    # @param screen Экран для отрисовки игрока
+    # @return Возвращает обновленный статус игры
     def update(self, game_over, world, door_group, screen):
         dx = 0
         dy = 0
@@ -72,6 +95,12 @@ class Player:
         screen.blit(self.image, self.rect)
         return game_over
 
+    ## \brief Метод reset()
+    #
+    # Сбрасывает состояние игрока, загружает изображения для анимации и
+    # устанавливает стартовые координаты
+    # @param x Начальная координата X
+    # @param y Начальная координата Y
     def reset(self, x, y):
         self.images_right = []
         self.images_left = []
@@ -93,4 +122,3 @@ class Player:
         self.jumped = False
         self.direction = 0
         self.in_air = True
-

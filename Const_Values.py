@@ -1,23 +1,30 @@
 import pygame
 
+# Инициализация Pygame
 pygame.init()
 
-WIDTH, HEIGHT = 1000, 800
-FPS = 60
+# Константы
+WIDTH, HEIGHT = 1000, 800  # Размер экрана
+FPS = 60  # Частота кадров
 
+# Настройка экрана
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("I Hate This Game")
-clock = pygame.time.Clock()
+pygame.display.set_caption("I Hate This Game")  # Заголовок окна
+clock = pygame.time.Clock()  # Таймер для кадров
 
+# Размер клетки
 tile_size = 50
-game_over = 0
-level = 1
-main_menu = True
 
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-GRAY = (200, 200, 200)
-DARK_GRAY = (169, 169, 169)
+# Статус игры
+game_over = 0  # Переменная для отслеживания состояния игры (0 - игра продолжается)
+level = 1  # Текущий уровень
+main_menu = True  # Флаг для отображения главного меню
+
+# Цвета
+WHITE = (255, 255, 255)  # Белый
+BLACK = (0, 0, 0)  # Черный
+RED = (255, 0, 0)  # Красный
+GREEN = (0, 255, 0)  # Зеленый
+BLUE = (0, 0, 255)  # Синий
+GRAY = (200, 200, 200)  # Серый
+DARK_GRAY = (169, 169, 169)  # Темно-серый
