@@ -1,45 +1,71 @@
 """
-Модуль World отвечает за создание игрового мира, загрузку платформ и дверей,
-а также их последующую отрисовку на экране.
+Модуль World отвечает за создание игрового мира, загрузку всех игровых объектов
+(платформы, двери, шипы, монеты) и их отрисовку на экране.
 """
 
-from Const_Values import *
+import pygame
+from Create_Maps import TILE_SIZE
+from Spike import Spike
+from Coin import Coin
 from Door import Door
 
 
-## \brief Класс World
-#
-# Отвечает за создание игрового мира, загрузку плиток и дверей, а также их отрисовку.
 class World:
-    ## \brief Конструктор класса
-    #
-    # Инициализирует игровой мир, загружает плитки и двери на основе переданных данных.
-    # @param data Двумерный массив, представляющий карту уровня (1 - платформа, 2 - дверь)
-    # @param door_group Группа спрайтов дверей, используется для хранения дверей на уровне
-    def __init__(self, data, door_group):
+    """
+    Класс World создает игровой мир на основе загруженных данных и отрисовывает его.
+    """
+
+    def __init__(self, data, door_group, spike_group, coin_group):
+        """
+        Инициализирует игровой мир, загружает тайлы и игровые объекты на основе переданных данных.
+
+        :param data: Двумерный массив, представляющий карту уровня.
+        :param door_group: Группа спрайтов дверей.
+        :param spike_group: Группа спрайтов шипов.
+        :param coin_group: Группа спрайтов монет.
+        """
         self.tile_list = []  # Список платформ
         self.door_group = door_group  # Группа дверей
-        block_img = pygame.image.load("img/platform1.png")  # Загружаем изображение платформы
+        self.spike_group = spike_group  # Группа шипов
+        self.coin_group = coin_group  # Группа монет
+
+        # Загрузка изображений для тайлов
+        self.textures = {
+            1: pygame.image.load("img/platform1.png"),  # Платформа
+            3: pygame.image.load("img/spike.png"),  # Шипы
+            4: pygame.image.load("img/coin.png"),  # Монета
+        }
 
         # Проход по строкам и столбцам массива уровня
         for row_count, row in enumerate(data):
             for col_count, tile in enumerate(row):
-                if tile == 1:
-                    # Создание платформы
-                    img = pygame.transform.scale(block_img, (tile_size, tile_size))
-                    img_rect = img.get_rect(topleft=(col_count * tile_size, row_count * tile_size))
-                    self.tile_list.append((img, img_rect))
-                elif tile == 2:
-                    # Создание двери
-                    door = Door(col_count * tile_size, row_count * tile_size - (tile_size // 2))
+                x, y = col_count * TILE_SIZE, row_count * TILE_SIZE  # Координаты тайла
+
+                if tile in self.textures:
+                    # Загружаем изображение для тайла
+                    img = pygame.transform.scale(self.textures[tile], (TILE_SIZE, TILE_SIZE))
+                    img_rect = img.get_rect(topleft=(x, y))
+
+                    if tile == 1:  # Платформа
+                        self.tile_list.append((img, img_rect))
+                    elif tile == 3:  # Шипы
+                        self.spike_group.add(Spike(x, y))
+                    elif tile == 4:  # Монета
+                        self.coin_group.add(Coin(x, y))
+
+                elif tile == 2:  # Дверь
+                    door = Door(x, y - (TILE_SIZE // 2))
                     self.door_group.add(door)
 
-    ## \brief Метод draw()
-    #
-    # Отрисовывает все платформы и двери на экране.
-    # @param screen Экран, на котором будут отображаться элементы уровня
     def draw(self, screen):
-        for tile in self.tile_list:
-            screen.blit(tile[0], tile[1])  # Отрисовка платформ
+        """
+        Отрисовывает все элементы мира на экране.
+
+        :param screen: Поверхность, на которой будет отрисован уровень.
+        """
+        for img, rect in self.tile_list:
+            screen.blit(img, rect)  # Отрисовка платформ
 
         self.door_group.draw(screen)  # Отрисовка дверей
+        self.spike_group.draw(screen)  # Отрисовка шипов
+        self.coin_group.draw(screen)  # Отрисовка монет
