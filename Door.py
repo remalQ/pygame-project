@@ -15,6 +15,6 @@ class Door(pygame.sprite.Sprite):
     # @param y Позиция двери по оси Y
     def __init__(self, x, y):
         super().__init__()
-        img = pygame.image.load('img/door.png')  # Загружаем изображение двери
+        img = pygame.image.load('Assets/door.png')  # Загружаем изображение двери
         self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))  # Масштабируем изображение
         self.rect = self.image.get_rect(topleft=(x, y))  # Устанавливаем прямоугольник, который будет определять позицию двери

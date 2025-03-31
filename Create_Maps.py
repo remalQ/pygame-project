@@ -70,7 +70,7 @@ class LevelEditor:
         self.end_select = None
 
         # Папка с уровнями
-        self.levels_dir = "maps"
+        self.levels_dir = "Maps"
         if not os.path.exists(self.levels_dir):
             os.makedirs(self.levels_dir)
 

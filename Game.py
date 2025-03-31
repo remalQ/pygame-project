@@ -28,9 +28,10 @@ class Game:
         pygame.display.set_caption('Платформер')
         self.clock = pygame.time.Clock()
         self.door_group = pygame.sprite.Group()
+        self.coin_group = pygame.sprite.Group()
 
         # Получаем список всех файлов уровней
-        level_files = [f for f in os.listdir('maps') if f.endswith('.pkl')]
+        level_files = [f for f in os.listdir('Maps') if f.endswith('.pkl')]
 
         # Безопасная сортировка по номеру уровня
         def extract_level_number(filename):
@@ -48,7 +49,7 @@ class Game:
         if self.total_levels > 0:
             self.load_level(self.level)
         else:
-            print("Нет доступных уровней в папке maps/")
+            print("Нет доступных уровней в папке Maps/")
             self.world_data = []
         self.player = Player(100, HEIGHT - 130)
         self.game_over = 0
@@ -68,7 +69,7 @@ class Game:
     # Загружает данные уровня из файла.
     # @param level Номер загружаемого уровня.
     def load_level(self, level):
-        level_path = f'maps/map{level}.pkl'  # Исправлено для соответствия именам файлов
+        level_path = f'Maps/map{level}.pkl'  # Исправлено для соответствия именам файлов
         self.door_group = Group()
         # self.spike_group = Group()
         # self.coin_group = Group()
@@ -82,12 +83,12 @@ class Game:
                     raise ValueError("Ошибка: загруженные данные уровня не являются списком!")
 
                 # Создаем мир
-                self.world = World(self.world_data, self.door_group)
+                self.world = World(self.world_data, self.door_group, self.coin_group)
                 print(f"Уровень {level} успешно загружен!")
             except Exception as e:
                 print(f"Ошибка загрузки уровня {level}: {e}")
                 self.world_data = []
-                self.world = World(self.world_data, self.door_group)  # Пустой мир
+                self.world = World(self.world_data, self.door_group, self.coin_group)  # Пустой мир
         else:
             print(f"Файл {level_path} не найден!")
 
