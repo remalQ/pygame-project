@@ -27,7 +27,7 @@ class World:
 
         # Загрузка изображений для тайлов
         self.textures = {
-            1: pygame.image.load("Assets/platform1.png").convert_alpha(),  # Платформа
+            1: pygame.image.load("Assets/platform.png").convert_alpha(),  # Платформа
             4: None  # Монета (анимированная, загружается в классе Coin)
         }
 
@@ -37,13 +37,26 @@ class World:
                 x, y = col_count * TILE_SIZE, row_count * TILE_SIZE
 
                 if tile == 1:  # Платформа
-                    img = pygame.transform.scale(self.textures[1], (TILE_SIZE, TILE_SIZE))
+                    # загружаем изображение без масштабирования (если оно уже нужного размера)
+                    img = self.textures[1]
+                    if img.get_size() != (TILE_SIZE, TILE_SIZE):
+                        img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
                     img_rect = img.get_rect(topleft=(x, y))
                     self.tile_list.append((img, img_rect))
 
                 elif tile == 2:  # Дверь
-                    door = Door(x, y - (TILE_SIZE // 2))
-                    self.door_group.add(door)
+                    # проверяем, что это верхний левый тайл двери (чтобы не создавать 4 двери)
+                    if (row_count < len(data) - 1 and col_count < len(row) - 1 and
+                            data[row_count][col_count + 1] == 2 and
+                            data[row_count + 1][col_count] == 2 and
+                            data[row_count + 1][col_count + 1] == 2):
+                        # дверь для 1 тайла
+                        door = Door(x, y)
+                        self.door_group.add(door)
+                        # помечаем остальные тайлы для подходящего размера (2*2)
+                        data[row_count][col_count + 1] = 0
+                        data[row_count + 1][col_count] = 0
+                        data[row_count + 1][col_count + 1] = 0
 
                 elif tile == 4:  # Монета
                     coin = Coin(x, y)
