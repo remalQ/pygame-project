@@ -122,6 +122,7 @@ class Game:
                             self.start_time = pygame.time.get_ticks()  # Запуск таймера
                             pygame.event.clear()  # Очищаем очередь событий
                             menu_active = False
+                            return
 
                     if leaderboard_button.is_clicked(pygame.mouse.get_pos()):
                         leaderboard_menu = LeaderboardMenu(self.records_db)
