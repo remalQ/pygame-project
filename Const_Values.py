@@ -13,7 +13,7 @@ pygame.display.set_caption("I Hate This Game")  # Заголовок окна
 clock = pygame.time.Clock()  # Таймер для кадров
 
 # Размер клетки
-tile_size = 50
+tile_size = 25
 
 # Статус игры
 game_over = 0  # Переменная для отслеживания состояния игры (0 - игра продолжается)
