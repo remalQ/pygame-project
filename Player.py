@@ -3,11 +3,13 @@
 """
 
 from Const_Values import *
+from Create_Maps import TILE_SIZE
 
 ## \brief Описание класса
 #
 # В этом классе у главного героя прописаны все основные механики его поведения
 # относительно окружающего мира
+
 
 class Player:
     ## \brief Конструктор класса
@@ -17,7 +19,9 @@ class Player:
     # @param y Начальная координата Y
     def __init__(self, x, y):
         self.reset(x, y)
-        self.coins_collected = 0
+        self.coins_collected = 0  # Счетчик собранных монет
+        self.coin_image = pygame.image.load("Coins/Gold_1.png")  # Загружаем картинку монеты
+        self.coin_image = pygame.transform.scale(self.coin_image, (40, 40))  # Изменяем размер
 
     ## \brief Метод update()
     #
@@ -52,14 +56,24 @@ class Player:
             if not key[pygame.K_LEFT] and not key[pygame.K_RIGHT]:
                 self.counter = 0
                 self.index = 0
-                self.image = self.images_right[self.index] if self.direction == 1 else self.images_left[self.index]
+                if self.direction == 1:
+                    self.image = self.images_right[self.index]
+                if self.direction == -1:
+                    self.image = self.images_left[self.index]
 
             if self.counter > walk_cooldown:
                 self.counter = 0
-                self.index = (self.index + 1) % len(self.images_right)
-                self.image = self.images_right[self.index] if self.direction == 1 else self.images_left[self.index]
+                self.index += 1
+                if self.index >= len(self.images_right):
+                    self.index = 0
+                if self.direction == 1:
+                    self.image = self.images_right[self.index]
+                if self.direction == -1:
+                    self.image = self.images_left[self.index]
 
-            self.vel_y = min(self.vel_y + 1, 10)
+            self.vel_y += 1
+            if self.vel_y > 10:
+                self.vel_y = 10
             dy += self.vel_y
 
             self.in_air = True
@@ -69,25 +83,27 @@ class Player:
                 if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
                     if self.vel_y < 0:
                         dy = tile[1].bottom - self.rect.top
-                    else:
+                        self.vel_y = 0
+                    elif self.vel_y >= 0:
                         dy = tile[1].top - self.rect.bottom
+                        self.vel_y = 0
                         self.in_air = False
-                    self.vel_y = 0
+
+            # Обработка подбора монет
+            collected_coins = pygame.sprite.spritecollide(self, coin_group, True)
+            self.coins_collected += len(collected_coins)
 
             if pygame.sprite.spritecollide(self, door_group, False):
                 game_over = 1
 
-            for coin in pygame.sprite.spritecollide(self, coin_group, True):
-                self.coins_collected += 1  # Увеличиваем количество собранных монет
-
             if self.rect.y > HEIGHT:
                 game_over = -1
+
             self.rect.x += dx
             self.rect.y += dy
 
         screen.blit(self.image, self.rect)
         return game_over
-
 
     ## \brief Метод reset()
     #

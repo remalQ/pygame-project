@@ -61,6 +61,7 @@ class Game:
         """Сбрасывает уровень и позицию игрока"""
         self.load_level(level)
         self.player.reset(100, HEIGHT - 130)
+        self.player.coins_collected = 0  # Сброс счётчика монет
         self.game_over = 0
         self.start_time = pygame.time.get_ticks()
 
@@ -188,6 +189,14 @@ class Game:
             player_name = "Player"  # Можно запросить имя игрока или использовать сохраненное
             self.records_db.add_record(player_name, completion_time, self.level)
 
+    def draw_coin_counter(self):
+        font = pygame.font.SysFont(None, 40)
+        text = font.render(str(self.player.coins_collected), True, BLACK)
+
+        # Отрисовываем иконку монеты и число собранных монет
+        self.screen.blit(self.player.coin_image, (20, 20))  # Монета слева сверху
+        self.screen.blit(text, (70, 30))  # Число рядом
+
     ## \brief Основной цикл игры
     #
     # Запускает игровой процесс, обрабатывает события и обновляет экран.
@@ -205,6 +214,8 @@ class Game:
             if self.world:  # Проверяем, инициализирован ли world
                 self.world.draw(self.screen)  # Отрисовываем мир
             self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group , self.screen)
+
+            self.draw_coin_counter()
 
             if self.game_over == 1:
                 self.check_and_save_record()
