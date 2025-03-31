@@ -5,8 +5,8 @@
 
 import pygame
 from Create_Maps import TILE_SIZE
-from Spike import Spike
-from Coin import Coin
+# from Spike import Spike
+# from Coin import Coin
 from Door import Door
 
 
@@ -15,7 +15,7 @@ class World:
     Класс World создает игровой мир на основе загруженных данных и отрисовывает его.
     """
 
-    def __init__(self, data, door_group, spike_group, coin_group):
+    def __init__(self, data, door_group):
         """
         Инициализирует игровой мир, загружает тайлы и игровые объекты на основе переданных данных.
 
@@ -26,14 +26,14 @@ class World:
         """
         self.tile_list = []  # Список платформ
         self.door_group = door_group  # Группа дверей
-        self.spike_group = spike_group  # Группа шипов
-        self.coin_group = coin_group  # Группа монет
+        # self.spike_group = spike_group  # Группа шипов
+        # self.coin_group = coin_group  # Группа монет
 
         # Загрузка изображений для тайлов
         self.textures = {
             1: pygame.image.load("img/platform1.png"),  # Платформа
-            3: pygame.image.load("img/spike.png"),  # Шипы
-            4: pygame.image.load("img/coin.png"),  # Монета
+            # 3: pygame.image.load("img/spike.png"),  # Шипы
+            # 4: pygame.image.load("img/coin.png"),  # Монета
         }
 
         # Проход по строкам и столбцам массива уровня
@@ -48,10 +48,10 @@ class World:
 
                     if tile == 1:  # Платформа
                         self.tile_list.append((img, img_rect))
-                    elif tile == 3:  # Шипы
-                        self.spike_group.add(Spike(x, y))
-                    elif tile == 4:  # Монета
-                        self.coin_group.add(Coin(x, y))
+                    # elif tile == 3:  # Шипы
+                    #     self.spike_group.add(Spike(x, y))
+                    # elif tile == 4:  # Монета
+                    #     self.coin_group.add(Coin(x, y))
 
                 elif tile == 2:  # Дверь
                     door = Door(x, y - (TILE_SIZE // 2))
@@ -67,5 +67,5 @@ class World:
             screen.blit(img, rect)  # Отрисовка платформ
 
         self.door_group.draw(screen)  # Отрисовка дверей
-        self.spike_group.draw(screen)  # Отрисовка шипов
-        self.coin_group.draw(screen)  # Отрисовка монет
+        # self.spike_group.draw(screen)  # Отрисовка шипов
+        # self.coin_group.draw(screen)  # Отрисовка монет

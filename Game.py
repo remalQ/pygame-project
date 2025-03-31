@@ -28,25 +28,50 @@ class Game:
         pygame.display.set_caption('Платформер')
         self.clock = pygame.time.Clock()
         self.door_group = pygame.sprite.Group()
-        self.total_levels = len([f for f in os.listdir('maps') if f.endswith('.pkl')])
+
+        # Получаем список всех файлов уровней
+        level_files = [f for f in os.listdir('maps') if f.endswith('.pkl')]
+
+        # Безопасная сортировка по номеру уровня
+        def extract_level_number(filename):
+            try:
+                # Удаляем расширение и префикс 'level', затем преобразуем в число
+                return int(filename.split('.')[0].replace('level', ''))
+            except ValueError:
+                return 0  # Для файлов с некорректными именами
+
+        level_files.sort(key=extract_level_number)
+        self.total_levels = len(level_files)
+
         self.level = 1
         self.world_data = []
-        self.load_level(self.level)
+        if self.total_levels > 0:
+            self.load_level(self.level)
+        else:
+            print("Нет доступных уровней в папке maps/")
+            self.world_data = []
         self.player = Player(100, HEIGHT - 130)
         self.game_over = 0
-        self.records_db = RecordsDB()  # Инициализация базы данных рекордов
-        self.start_time = 0  # Время начала уровня
-        self.current_time = 0  # Текущее время прохождения
+        self.records_db = RecordsDB()
+        self.start_time = 0
+        self.current_time = 0
+
+    def reset_level(self, level):
+        """Сбрасывает уровень и позицию игрока"""
+        self.load_level(level)
+        self.player.reset(100, HEIGHT - 130)
+        self.game_over = 0
+        self.start_time = pygame.time.get_ticks()
 
     ## \brief Загрузка уровня
     #
     # Загружает данные уровня из файла.
     # @param level Номер загружаемого уровня.
     def load_level(self, level):
-        level_path = f'maps/{level}.pkl'
+        level_path = f'maps/map{level}.pkl'  # Исправлено для соответствия именам файлов
         self.door_group = Group()
-        self.spike_group = Group()
-        self.coin_group = Group()
+        # self.spike_group = Group()
+        # self.coin_group = Group()
 
         if os.path.exists(level_path):
             try:
@@ -57,12 +82,12 @@ class Game:
                     raise ValueError("Ошибка: загруженные данные уровня не являются списком!")
 
                 # Создаем мир
-                self.world = World(self.world_data, self.door_group, self.spike_group, self.coin_group)
+                self.world = World(self.world_data, self.door_group)
                 print(f"Уровень {level} успешно загружен!")
             except Exception as e:
                 print(f"Ошибка загрузки уровня {level}: {e}")
                 self.world_data = []
-                self.world = World(self.world_data, self.door_group, self.spike_group, self.coin_group)  # Пустой мир
+                self.world = World(self.world_data, self.door_group)  # Пустой мир
         else:
             print(f"Файл {level_path} не найден!")
 
