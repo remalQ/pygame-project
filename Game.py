@@ -72,7 +72,7 @@ class Game:
         level_path = f'Maps/map{level}.pkl'  # Исправлено для соответствия именам файлов
         self.door_group = Group()
         # self.spike_group = Group()
-        # self.coin_group = Group()
+        self.coin_group = Group()
 
         if os.path.exists(level_path):
             try:
@@ -119,7 +119,9 @@ class Game:
                             self.level = selected_level
                             self.reset_level(self.level)
                             self.start_time = pygame.time.get_ticks()  # Запуск таймера
+                            pygame.event.clear()  # Очищаем очередь событий
                             menu_active = False
+
                     if leaderboard_button.is_clicked(pygame.mouse.get_pos()):
                         leaderboard_menu = LeaderboardMenu(self.records_db)
                         leaderboard_menu.show(self.screen)
@@ -184,8 +186,6 @@ class Game:
         if self.game_over == 1:  # Если уровень пройден
             completion_time = self.current_time
             player_name = "Player"  # Можно запросить имя игрока или использовать сохраненное
-
-            # Сохраняем рекорд
             self.records_db.add_record(player_name, completion_time, self.level)
 
     ## \brief Основной цикл игры
@@ -204,7 +204,7 @@ class Game:
 
             if self.world:  # Проверяем, инициализирован ли world
                 self.world.draw(self.screen)  # Отрисовываем мир
-            self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.screen)
+            self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group , self.screen)
 
             if self.game_over == 1:
                 self.check_and_save_record()

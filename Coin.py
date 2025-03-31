@@ -18,7 +18,7 @@ class Coin(pygame.sprite.Sprite):
 
     def load_animation_frames(self):
         """Загружает все кадры анимации из папки Coins"""
-        coins_dir = "Assets/Coins"
+        coins_dir = "Coins"
         frame_files = sorted([f for f in os.listdir(coins_dir) if f.endswith('.png')])
 
         for frame_file in frame_files:
