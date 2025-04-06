@@ -31,7 +31,7 @@ class Player:
     def update(self, game_over, world, door_group, coin_group, screen):
         dx = 0  # Изменение по X
         dy = 0  # Изменение по Y
-        walk_cooldown = 5  # Задержка между кадрами анимации ходьбы
+        walk_cooldown = 3  # Задержка между кадрами анимации ходьбы
 
         if game_over == 0:
             # Обработка ввода с клавиатуры
