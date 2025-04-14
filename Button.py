@@ -36,10 +36,7 @@ class Button:
         self.y = y
         self.color = color
         self.hover_color = hover_color
-        #self.font = pygame.font.SysFont(None, 40)
-        self.font = pygame.font.Font("fonts/Monocraft.otf", 40)
-        self.rect = pygame.Rect(x - 100, y - 25, 200, 50)  # Прямоугольник кнопки
-
+        self.font = pygame.font.Font("Fonts/Monocraft.otf", 40)
         self.text_surf = self.font.render(text, True, color)
         self.rect = self.text_surf.get_rect(center=(x, y))
 
@@ -50,7 +47,8 @@ class Button:
         Аргументы:
             screen (pygame.Surface): Экран, на котором будет отображена кнопка.
         """
-        mouse_pos = pygame.mouse.get_pos()  # Получаем позицию мыши
+        mouse_pos = pygame.mouse.get_pos()
+        # Меняем цвет текста при наведении
         color = self.hover_color if self.rect.collidepoint(mouse_pos) else self.color
         text_surf = self.font.render(self.text, True, color)
         screen.blit(text_surf, text_surf.get_rect(center=(self.x, self.y)))
