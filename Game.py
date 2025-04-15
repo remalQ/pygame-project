@@ -168,7 +168,7 @@ class Game:
 
         while completed_active:
             self.screen.fill(BLACK)
-            font = pygame.font.SysFont(None, 60)
+            font = pygame.font.Font("Fonts/Monocraft.otf", 40)
             text = font.render("Игра пройдена!", True, WHITE)
             self.screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - 100))
             main_menu_button.draw(self.screen)
@@ -191,7 +191,7 @@ class Game:
             self.records_db.add_record(player_name, completion_time, self.level)
 
     def draw_coin_counter(self):
-        font = pygame.font.SysFont(None, 40)
+        font = pygame.font.Font("Fonts/Monocraft.otf", 40)
         text = font.render(str(self.player.coins_collected), True, BLACK)
 
         # Отрисовываем иконку монеты и число собранных монет

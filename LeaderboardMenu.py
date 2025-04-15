@@ -26,7 +26,7 @@ class LeaderboardMenu:
             screen.fill(BLACK)
 
             # Заголовок
-            font = pygame.font.SysFont(None, 60)
+            font = pygame.font.Font("Fonts/Monocraft.otf", 40)
             title = font.render("ТАБЛИЦА ЛИДЕРОВ", True, WHITE)
             screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 50))
 
