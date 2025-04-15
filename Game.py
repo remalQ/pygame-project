@@ -9,6 +9,8 @@ from World import World
 from Level_Menu import LevelMenu
 from RecordsDB import RecordsDB
 from LeaderboardMenu import LeaderboardMenu
+from SettingsMenu import SettingsMenu
+from HelpMenu import HelpMenu
 
 
 """
@@ -56,6 +58,8 @@ class Game:
         self.records_db = RecordsDB()
         self.start_time = 0
         self.current_time = 0
+        self.settings_menu = SettingsMenu()
+        self.help_menu = HelpMenu()
 
     def reset_level(self, level):
         """Сбрасывает уровень и позицию игрока"""
@@ -72,7 +76,6 @@ class Game:
     def load_level(self, level):
         level_path = f'Maps/map{level}.pkl'  # Исправлено для соответствия именам файлов
         self.door_group = Group()
-        # self.spike_group = Group()
         self.coin_group = Group()
 
         if os.path.exists(level_path):
@@ -98,15 +101,19 @@ class Game:
     # Отображает главное меню с возможностью начать игру или выйти.
     def show_main_menu(self):
         menu_active = True
-        start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 100, GRAY, WHITE)
-        leaderboard_button = Button("Таблица лидеров", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
-        exit_button = Button("Выход", WIDTH // 2, HEIGHT // 2 + 100, GRAY, WHITE)
+        start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 200, GRAY, WHITE)
+        settings_button = Button("Настройки", WIDTH // 2, HEIGHT // 2 - 100, GRAY, WHITE)
+        help_button = Button("Помощь", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
+        leaderboard_button = Button("Таблица лидеров", WIDTH // 2, HEIGHT // 2 + 100, GRAY, WHITE)
+        exit_button = Button("Выход", WIDTH // 2, HEIGHT // 2 + 200, GRAY, WHITE)
 
         while menu_active:
             self.screen.fill(BLACK)
             start_button.draw(self.screen)
             leaderboard_button.draw(self.screen)
             exit_button.draw(self.screen)
+            settings_button.draw(self.screen)
+            help_button.draw(self.screen)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -127,6 +134,13 @@ class Game:
                     if leaderboard_button.is_clicked(pygame.mouse.get_pos()):
                         leaderboard_menu = LeaderboardMenu(self.records_db)
                         leaderboard_menu.show(self.screen)
+
+                    if settings_button.is_clicked(pygame.mouse.get_pos()):
+                        self.settings_menu.show(self.screen)
+
+                    if help_button.is_clicked(pygame.mouse.get_pos()):
+                        self.help_menu.show(self.screen)
+
                     if exit_button.is_clicked(pygame.mouse.get_pos()):
                         pygame.quit()
                         sys.exit()

@@ -48,7 +48,18 @@ class RecordsDB:
             LIMIT ?
             ''', (limit,))
 
-        return cursor.fetchall()
+        records = cursor.fetchall()
+
+        # Форматируем время
+        formatted_records = []
+        for name, time_sec, lvl, date in records:
+            minutes = int(time_sec // 60)
+            seconds = int(time_sec % 60)
+            milliseconds = int((time_sec - int(time_sec)) * 1000)
+            formatted_time = f"{minutes:02}:{seconds:02}:{milliseconds:03}"
+            formatted_records.append((name, formatted_time, lvl, date))
+
+        return formatted_records
 
     def close(self):
         self.conn.close()

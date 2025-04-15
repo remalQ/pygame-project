@@ -1,6 +1,7 @@
 """@package Player
 Класс игрока
 """
+import pygame
 
 from Const_Values import *
 from Create_Maps import TILE_SIZE
@@ -52,7 +53,7 @@ class Player:
                 self.jumped = False
 
             # Движение влево
-            if key[pygame.K_LEFT]:
+            if key[pygame.K_a]:
                 dx -= 5
                 self.counter += 1
                 self.direction = -1
@@ -63,7 +64,7 @@ class Player:
                     self.image = self.images_left[self.index]
 
             # Движение вправо
-            if key[pygame.K_RIGHT]:
+            if key[pygame.K_d]:
                 dx += 5
                 self.counter += 1
                 self.direction = 1
@@ -80,7 +81,7 @@ class Player:
                 else:
                     self.image = self.jump_image_left
             # Если стоит на месте - показываем первый кадр анимации
-            elif not key[pygame.K_LEFT] and not key[pygame.K_RIGHT]:
+            elif not key[pygame.K_a] and not key[pygame.K_d]:
                 self.counter = 0
                 self.index = 0
                 if self.direction == 1:

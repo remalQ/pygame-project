@@ -21,6 +21,7 @@ class LeaderboardMenu:
     def show(self, screen):
         active = True
         selected_level = None
+        scroll_offset = 0  # смещение прокрутки
 
         while active:
             screen.fill(BLACK)
@@ -30,7 +31,7 @@ class LeaderboardMenu:
             title = font.render("ТАБЛИЦА ЛИДЕРОВ", True, WHITE)
             screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 50))
 
-            # Кнопки выбора уровня
+            # Кнопки
             self.all_button.draw(screen)
             for btn in self.level_buttons:
                 btn.draw(screen)
@@ -38,9 +39,9 @@ class LeaderboardMenu:
 
             # Отображение рекордов
             if selected_level is not None:
-                self.display_records(screen, selected_level)
-            elif selected_level == 0:  # Все уровни
-                self.display_records(screen)
+                self.display_records(screen, selected_level, scroll_offset)
+            elif selected_level == 0:
+                self.display_records(screen, None, scroll_offset)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -52,52 +53,64 @@ class LeaderboardMenu:
                         active = False
 
                     if self.all_button.is_clicked(pygame.mouse.get_pos()):
-                        selected_level = 0  # Показать все уровни
+                        selected_level = 0
 
                     for i, btn in enumerate(self.level_buttons, 1):
                         if btn.is_clicked(pygame.mouse.get_pos()):
                             selected_level = i
 
+                # Прокрутка колесиком мыши
+                if event.type == pygame.MOUSEWHEEL:
+                    scroll_offset += event.y * 30
+                    scroll_offset = max(min(scroll_offset, 0), -1000)  # ограничим прокрутку
+
             pygame.display.flip()
 
-        return None
-
-    def display_records(self, screen, level=None):
+    def display_records(self, screen, level=None, scroll_offset=0):
         if level == 0:
-            records = self.records_db.get_top_records(limit=20)
+            records = self.records_db.get_top_records(limit=100)
             title = "ЛУЧШИЕ РЕЗУЛЬТАТЫ (ВСЕ УРОВНИ)"
         else:
-            records = self.records_db.get_top_records(level=level)
+            records = self.records_db.get_top_records(level=level, limit=100)
             title = f"ЛУЧШИЕ РЕЗУЛЬТАТЫ (УРОВЕНЬ {level})"
 
+        font_title = pygame.font.SysFont(None, 36)
+        font = pygame.font.SysFont(None, 28)
+
         # Заголовок таблицы
-        font = pygame.font.SysFont(None, 40)
-        title_text = font.render(title, True, WHITE)
+        title_text = font_title.render(title, True, WHITE)
         screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 250))
 
-        # Заголовки столбцов
-        font = pygame.font.SysFont(None, 30)
+        # Заголовки
         headers = ["Место", "Игрок", "Время", "Уровень", "Дата"]
+        col_positions = [70, 160, 330, 480, 600]
         for i, header in enumerate(headers):
             text = font.render(header, True, WHITE)
-            screen.blit(text, (50 + i * 150, 300))
+            screen.blit(text, (col_positions[i], 300))
 
-        # Записи рекордов
+        # Таблица
         if not records:
             text = font.render("Нет записей", True, WHITE)
             screen.blit(text, (WIDTH // 2 - text.get_width() // 2, 350))
         else:
-            for i, record in enumerate(records[:10], 1):  # Ограничиваем 10 записями
+            start_y = 340 + scroll_offset
+            for i, record in enumerate(records, 1):
                 player_name, time, lvl, date = record
-                date_str = date.split()[0]  # Берем только дату без времени
+                date_str = date.split()[0]
 
-                # Форматируем время в секундах в минуты:секунды
+                # Формат времени: мм:сс:мс
+                try:
+                    time = float(time)
+                except ValueError:
+                    time = 0.0  # если вдруг не получится преобразовать
+
                 minutes = int(time // 60)
                 seconds = int(time % 60)
-                time_str = f"{minutes:02d}:{seconds:02d}"
+                milliseconds = int((time % 1) * 1000)
 
-                # Отображаем запись
-                row_data = [str(i), player_name[:10], time_str, str(lvl), date_str]
+                time_str = f"{minutes:02d}:{seconds:02d}:{milliseconds:03d}"
+
+                row_data = [str(i), player_name[:12], time_str, str(lvl), date_str]
                 for j, data in enumerate(row_data):
                     text = font.render(data, True, WHITE)
-                    screen.blit(text, (50 + j * 150, 350 + i * 40))
+                    screen.blit(text, (col_positions[j], start_y + i * 35))
