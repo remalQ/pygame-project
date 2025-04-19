@@ -8,12 +8,13 @@ from Create_Maps import TILE_SIZE
 # from Spike import Spike
 from Coin import Coin
 from Door import Door
+from BreakingPlatform import BreakingPlatform
 
 
 class World:
     """Класс World создает игровой мир на основе загруженных данных и отрисовывает его."""
 
-    def __init__(self, data, door_group, coin_group):
+    def __init__(self, data, door_group, coin_group, breaking_platform_group):
         """
         Инициализирует игровой мир.
 
@@ -24,6 +25,8 @@ class World:
         self.tile_list = []  # Список платформ
         self.door_group = door_group  # Группа дверей
         self.coin_group = coin_group  # Группа монет
+        self.breaking_platform_group = breaking_platform_group
+
 
         # Загрузка изображений для тайлов
         self.textures = {
@@ -62,6 +65,10 @@ class World:
                     coin = Coin(x, y)
                     self.coin_group.add(coin)
 
+                elif tile == 5:  # Ломающаяся платформа
+                    platform = BreakingPlatform(x, y, TILE_SIZE, TILE_SIZE)
+                    self.breaking_platform_group.add(platform)
+
     def draw(self, screen):
         """Отрисовывает все элементы мира"""
         # Отрисовка платформ
@@ -71,6 +78,12 @@ class World:
         # Отрисовка дверей
         self.door_group.draw(screen)
 
-        # Обновление и отрисовка монет
         self.coin_group.update()
         self.coin_group.draw(screen)
+        self.breaking_platform_group.draw(screen)
+
+    def res(self):
+        """Сброс состояния объектов мира (например, платформ)"""
+        for platform in self.breaking_platform_group:
+            platform.reset()
+

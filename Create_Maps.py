@@ -18,7 +18,8 @@ TILE_TYPES = {
     1: {'name': 'platform', 'color': pygame.Color('gray'), 'solid': True},
     2: {'name': 'door', 'color': pygame.Color('blue'), 'solid': False},
     3: {'name': 'spike', 'color': pygame.Color('red'), 'solid': False},
-    4: {'name': 'coin', 'color': pygame.Color('yellow'), 'solid': False}
+    4: {'name': 'coin', 'color': pygame.Color('yellow'), 'solid': False},
+    5: {'name': 'breakable', 'color': pygame.Color('darkred'), 'solid': True}
 }
 
 
@@ -179,8 +180,8 @@ class LevelEditor:
                     self.show_save_dialog()
                 elif event.key == pygame.K_g:
                     self.show_grid = not self.show_grid
-                elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4):
-                    self.current_tile = event.key - pygame.K_1 + 1
+                elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5):
+                    self.current_tile = event.key - pygame.K_0
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1 or event.button == 3:  # ЛКМ или ПКМ
@@ -219,7 +220,7 @@ class LevelEditor:
 
         # Название текущего тайла
         tile_name = TILE_TYPES[self.current_tile]['name']
-        tool_text = font.render(f"Текущий: {tile_name} (1-4 для смены)", True, pygame.Color('white'))
+        tool_text = font.render(f"Текущий: {tile_name} (1-5 для смены)", True, pygame.Color('white'))
         self.screen.blit(tool_text, (10, 10))
 
         # Подсказки по управлению
