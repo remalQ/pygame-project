@@ -1,4 +1,3 @@
-import pygame
 import sys
 from Button import Button
 from Const_Values import *

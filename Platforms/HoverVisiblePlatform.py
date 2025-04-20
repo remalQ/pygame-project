@@ -1,5 +1,5 @@
 import pygame
-from Platform import Platform
+from Platforms.Platform import Platform
 
 
 class HoverVisiblePlatform(Platform):

@@ -1,10 +1,10 @@
 from Create_Maps import TILE_SIZE
 from Const_Values import *
-from BreakingPlatform import BreakingPlatform
+from Platforms.BreakingPlatform import BreakingPlatform
 from Door import Door
 from Coin import Coin
-from Platform import Platform
-from HoverVisiblePlatform import HoverVisiblePlatform
+from Platforms.Platform import Platform
+from Platforms.HoverVisiblePlatform import HoverVisiblePlatform
 
 
 class World:

@@ -6,11 +6,11 @@ import os
 from Player import Player
 from Button import Button
 from World import World
-from Level_Menu import LevelMenu
+from Menus.Level_Menu import LevelMenu
 from RecordsDB import RecordsDB
-from LeaderboardMenu import LeaderboardMenu
-from SettingsMenu import SettingsMenu
-from HelpMenu import HelpMenu
+from Menus.LeaderboardMenu import LeaderboardMenu
+from Menus.SettingsMenu import SettingsMenu
+from Menus.HelpMenu import HelpMenu
 
 
 """
