@@ -52,7 +52,6 @@ class Game:
             self.load_level(self.level)
         else:
             self.world_data = []
-        self.player = Player(100, HEIGHT - 130)
         self.game_over = 0
         self.records_db = RecordsDB()
         self.start_time = 0
@@ -73,6 +72,7 @@ class Game:
     # Загружает данные уровня из файла.
     # @param level Номер загружаемого уровня.
     def load_level(self, level):
+        self.player = Player(100, HEIGHT - 130)
         level_path = f'Maps/level{level}.pkl'  # Исправлено для соответствия именам файлов
         self.door_group = Group()
         self.coin_group = Group()
@@ -86,10 +86,12 @@ class Game:
                     raise ValueError("Ошибка: загруженные данные уровня не являются списком!")
 
                 # Создаем мир
-                self.world = World(self.world_data, self.door_group, self.coin_group)
+                self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
+
             except Exception:
                 self.world_data = []
-                self.world = World(self.world_data, self.door_group, self.coin_group)  # Пустой мир
+                self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
+
         else:
             pass
 

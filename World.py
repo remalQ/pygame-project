@@ -5,18 +5,20 @@ from Door import Door
 from Coin import Coin
 from Platforms.Platform import Platform
 from Platforms.HoverVisiblePlatform import HoverVisiblePlatform
+from Platforms.MovingPlatform import MovingPlatform
 
 
 class World:
     """Класс World создает игровой мир на основе загруженных данных и отрисовывает его."""
 
-    def __init__(self, data, door_group, coin_group):
+    def __init__(self, data, door_group, coin_group, player):
         self.tile_list = []
         self.platform_group = pygame.sprite.Group()
         self.door_group = door_group
         self.coin_group = coin_group
         self.breaking_platform_group = pygame.sprite.Group()
         self.hover_visible_platform_group = pygame.sprite.Group()
+        self.moving_platform_group = pygame.sprite.Group()
 
         self.textures = {
             1: pygame.image.load("Assets/platform.png").convert_alpha(),
@@ -43,17 +45,21 @@ class World:
                         data[row_count + 1][col_count] = 0
                         data[row_count + 1][col_count + 1] = 0
 
-                elif tile == 4:
+                elif tile == 3:
                     coin = Coin(x, y)
                     self.coin_group.add(coin)
 
-                elif tile == 5:
+                elif tile == 4:
                     platform = BreakingPlatform(x, y, TILE_SIZE, TILE_SIZE)
                     self.breaking_platform_group.add(platform)
 
-                elif tile == 6:
+                elif tile == 5:
                     platform = HoverVisiblePlatform(x, y, TILE_SIZE, TILE_SIZE)
                     self.hover_visible_platform_group.add(platform)
+
+                elif tile == 6:
+                    platform = MovingPlatform(x, y, TILE_SIZE, TILE_SIZE, player)
+                    self.moving_platform_group.add(platform)
 
     def draw(self, screen):
         self.platform_group.draw(screen)
@@ -62,9 +68,11 @@ class World:
         self.coin_group.draw(screen)
         self.breaking_platform_group.draw(screen)
         self.hover_visible_platform_group.draw(screen)
+        self.moving_platform_group.draw(screen)
 
     def update(self):
         """Обновляет поведение интерактивных объектов"""
-        for platform in self.breaking_platform_group.sprites() + self.hover_visible_platform_group.sprites():
+        for platform in self.breaking_platform_group.sprites() + self.hover_visible_platform_group.sprites() \
+                + self.moving_platform_group.sprites():
             platform.update()
 

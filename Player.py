@@ -73,7 +73,7 @@ class Player:
 
             self.in_air = True
             for tile in world.platform_group.sprites() + world.breaking_platform_group.sprites() \
-                    + world.hover_visible_platform_group.sprites():
+                    + world.hover_visible_platform_group.sprites() + world.moving_platform_group.sprites():
                 if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
                     dx = 0
 

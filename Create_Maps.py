@@ -17,10 +17,11 @@ TILE_TYPES = {
     0: {'name': 'empty', 'color': pygame.Color('black'), 'solid': False},
     1: {'name': 'platform', 'color': pygame.Color('gray'), 'solid': True},
     2: {'name': 'door', 'color': pygame.Color('blue'), 'solid': False},
-    3: {'name': 'spike', 'color': pygame.Color('red'), 'solid': False},
-    4: {'name': 'coin', 'color': pygame.Color('yellow'), 'solid': False},
-    5: {'name': 'breakable', 'color': pygame.Color('darkred'), 'solid': True},
-    6: {'name': 'hover', 'color': pygame.Color('lightgreen'), 'solid': True}
+    3: {'name': 'coin', 'color': pygame.Color('yellow'), 'solid': False},
+    4: {'name': 'breakable', 'color': pygame.Color('darkred'), 'solid': True},
+    5: {'name': 'hover', 'color': pygame.Color('lightgreen'), 'solid': True},
+    6: {'name': 'move_on_approach', 'color': pygame.Color('skyblue'), 'solid': True}
+
 }
 
 
@@ -237,6 +238,7 @@ class LevelEditor:
         # Название текущего тайла
         tile_name = TILE_TYPES[self.current_tile]['name']
         tool_text = font.render(f"Текущий: {tile_name} (1-6 для смены)", True, pygame.Color('white'))
+
         self.screen.blit(tool_text, (10, 10))
 
         # Подсказки по управлению

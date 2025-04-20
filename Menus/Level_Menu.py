@@ -1,53 +1,86 @@
 import sys
+import os
+import pickle
 from Button import *
-
-"""
-Класс LevelMenu
-
-Меню выбора уровня, которое отображает кнопки с номерами уровней. 
-Позволяет игроку выбрать уровень перед началом игры.
-"""
+from World import World  # Убедись, что World загружается корректно
+from Create_Maps import TILE_SIZE
 
 
 class LevelMenu:
-    ## \brief Конструктор класса
-    #
-    # Создает меню с кнопками для выбора уровня.
-    # @param total_levels Общее количество доступных уровней.
     def __init__(self, total_levels):
-        self.buttons = []  # Список кнопок уровней
-        self.total_levels = total_levels  # Общее количество уровней
+        self.buttons = []
+        self.total_levels = total_levels
+        self.preview_cache = {}
 
-    ## \brief Метод отображения меню выбора уровня
-    #
-    # Отрисовывает меню с кнопками уровней и обрабатывает ввод пользователя.
-    # @param screen Экран, на котором будет отображаться меню.
-    # @return Номер выбранного уровня.
+    def generate_real_preview(self, world_data, scale=0.4):
+        level_width = len(world_data[0]) * TILE_SIZE
+        level_height = len(world_data) * TILE_SIZE
+        preview_surface = pygame.Surface((level_width, level_height))
+
+        dummy_player = pygame.sprite.Sprite()
+        dummy_player.rect = pygame.Rect(0, 0, TILE_SIZE, TILE_SIZE)  # просто для MovingPlatform
+
+        dummy_group = pygame.sprite.Group()  # Заглушки
+        world = World(world_data, dummy_group, dummy_group, dummy_player)
+        world.draw(preview_surface)
+
+        # Масштабируем
+        scaled_size = (int(level_width * scale), int(level_height * scale))
+        return pygame.transform.scale(preview_surface, scaled_size)
+
     def show(self, screen):
         menu_active = True
-        self.buttons = []  # Очищаем список кнопок перед созданием новых
+        self.buttons = []
 
-        # Создаем кнопки для каждого уровня
         for i in range(1, self.total_levels + 1):
-            button = Button(f"Уровень {i}", WIDTH // 2, HEIGHT // 2 - 100 + i * 50, GRAY, WHITE)
+            button = Button(f"Уровень {i}", WIDTH // 3, HEIGHT // (self.total_levels + 1) * i, GRAY, WHITE)
             self.buttons.append(button)
 
-        # Главный цикл меню
-        while menu_active:
-            screen.fill(BLACK)  # Заливка экрана черным цветом
+        hovered_button = None
 
-            # Отрисовка кнопок
-            for button in self.buttons:
+        while menu_active:
+            screen.fill(BLACK)
+            mouse_pos = pygame.mouse.get_pos()
+            hovered_button = None
+
+            for i, button in enumerate(self.buttons):
+                if button.rect.collidepoint(mouse_pos):
+                    hovered_button = i + 1
                 button.draw(screen)
+
+            # Показываем превью уровня
+            if hovered_button:
+                if hovered_button not in self.preview_cache:
+                    level_path = f"Maps/level{hovered_button}.pkl"
+                    if os.path.exists(level_path):
+                        try:
+                            with open(level_path, "rb") as f:
+                                data = pickle.load(f)
+                                if isinstance(data, list):
+                                    preview = self.generate_real_preview(data)
+                                    self.preview_cache[hovered_button] = preview
+                        except Exception as e:
+                            print(f"Ошибка при загрузке уровня {hovered_button}:", e)
+                            self.preview_cache[hovered_button] = None
+
+                preview = self.preview_cache.get(hovered_button)
+                if preview:
+                    preview_x = WIDTH // 2 + 100
+                    preview_y = HEIGHT // 4
+                    screen.blit(preview, (preview_x, preview_y))
+
+                    # Обводка
+                    preview_rect = pygame.Rect(preview_x, preview_y, preview.get_width(), preview.get_height())
+                    pygame.draw.rect(screen, WHITE, preview_rect, 3)  # Толщина обводки — 3 пикселя
 
             # Обработка событий
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:  # Закрытие окна
+                if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                if event.type == pygame.MOUSEBUTTONDOWN:  # Обработка кликов
+                if event.type == pygame.MOUSEBUTTONDOWN:
                     for i, button in enumerate(self.buttons):
-                        if button.is_clicked(pygame.mouse.get_pos()):  # Проверяем, нажата ли кнопка
-                            return i + 1  # Возвращаем номер выбранного уровня
+                        if button.is_clicked(mouse_pos):
+                            return i + 1
 
-            pygame.display.flip()  # Обновляем экран
+            pygame.display.flip()
