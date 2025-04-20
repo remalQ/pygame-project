@@ -105,10 +105,6 @@ class Player:
             self.rect.y += dy
 
         screen.blit(self.image, self.rect)
-        hitbox_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
-        hitbox_surface.fill((0, 0, 255, 128))
-        screen.blit(hitbox_surface, (self.rect.x, self.rect.y))
-        print(f"Хитбокс персонажа: ширина={self.rect.width}, высота={self.rect.height}")
         return game_over
 
     def reset(self, x, y):
