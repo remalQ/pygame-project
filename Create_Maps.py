@@ -44,6 +44,7 @@ class LevelEditor:
         self.selecting = False
         self.start_select = None
         self.end_select = None
+        self.modified = False
 
         # Папка с уровнями
         self.levels_dir = "Maps"
@@ -55,7 +56,8 @@ class LevelEditor:
 
     def show_save_dialog(self):
         """Показывает диалог сохранения с вводом имени файла"""
-        save_active = True
+
+        save_active = False
         input_box = TextInputBox(
             SCREEN_WIDTH // 2 - 150,
             SCREEN_HEIGHT // 2 - 25,
@@ -63,6 +65,13 @@ class LevelEditor:
             50
         )
         font = pygame.font.SysFont('Arial', 30)
+
+        if self.filename:  # имя уже есть — просто сохранить
+            self.save_level()
+            return
+
+        else:
+            save_active = True
 
         while save_active:
             self.screen.fill(pygame.Color('black'))
@@ -155,6 +164,7 @@ class LevelEditor:
                 self.grid = pickle.load(f)
         except Exception:
             pass
+        self.modified = False  # загрузили — изменений нет
 
     def save_level(self):
         """Сохранение уровня"""
@@ -164,6 +174,7 @@ class LevelEditor:
                 pickle.dump(self.grid, f)
         except Exception:
             pass
+        self.modified = False  # после сохранения — изменений нет
 
     def handle_events(self):
         mouse_pos = pygame.mouse.get_pos()
@@ -174,7 +185,11 @@ class LevelEditor:
                 return False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return False
+                    if self.modified:
+                        if self.ask_save_confirmation():
+                            self.save_level()
+                    self.select_level_menu()
+
                 elif event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_CTRL:
                     self.show_save_dialog()
                 elif event.key == pygame.K_g:
@@ -211,7 +226,9 @@ class LevelEditor:
 
             for y in range(y1, y2 + 1):
                 for x in range(x1, x2 + 1):
-                    self.grid[y][x] = self.current_tile if place_tile else 0
+                    if self.grid[y][x] != (self.current_tile if place_tile else 0):
+                        self.grid[y][x] = self.current_tile if place_tile else 0
+                        self.modified = True
 
     def draw_ui(self):
         """Отображение UI-информации"""
@@ -250,6 +267,37 @@ class LevelEditor:
 
         self.draw_ui()
         pygame.display.flip()
+
+    def ask_save_confirmation(self):
+        """Диалог подтверждения сохранения"""
+        font = pygame.font.SysFont('Arial', 30)
+        yes_rect = pygame.Rect(SCREEN_WIDTH // 2 - 120, SCREEN_HEIGHT // 2 + 30, 100, 50)
+        no_rect = pygame.Rect(SCREEN_WIDTH // 2 + 20, SCREEN_HEIGHT // 2 + 30, 100, 50)
+
+        while True:
+            self.screen.fill(pygame.Color('black'))
+            prompt = font.render("Сохранить изменения?", True, pygame.Color('white'))
+            self.screen.blit(prompt, (SCREEN_WIDTH // 2 - prompt.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
+
+            pygame.draw.rect(self.screen, pygame.Color('green'), yes_rect)
+            pygame.draw.rect(self.screen, pygame.Color('red'), no_rect)
+
+            yes_text = font.render("Да", True, pygame.Color('black'))
+            no_text = font.render("Нет", True, pygame.Color('black'))
+            self.screen.blit(yes_text, (yes_rect.x + 25, yes_rect.y + 10))
+            self.screen.blit(no_text, (no_rect.x + 25, no_rect.y + 10))
+
+            pygame.display.flip()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if yes_rect.collidepoint(event.pos):
+                        return True
+                    elif no_rect.collidepoint(event.pos):
+                        return False
 
     def run(self):
         running = True

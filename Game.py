@@ -73,7 +73,7 @@ class Game:
     # Загружает данные уровня из файла.
     # @param level Номер загружаемого уровня.
     def load_level(self, level):
-        level_path = f'Maps/map{level}.pkl'  # Исправлено для соответствия именам файлов
+        level_path = f'Maps/level{level}.pkl'  # Исправлено для соответствия именам файлов
         self.door_group = Group()
         self.coin_group = Group()
 
@@ -223,8 +223,8 @@ class Game:
             if self.game_over == 0:
                 self.current_time = (pygame.time.get_ticks() - self.start_time) / 1000  # В секундах
 
-            if self.world:  # Проверяем, инициализирован ли world
-                self.world.draw(self.screen)  # Отрисовываем мир
+            self.world.draw(self.screen)
+
             self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group, self.screen)
 
             self.draw_coin_counter()
