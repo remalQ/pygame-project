@@ -95,28 +95,33 @@ class Player:
                 self.vel_y = 10
             dy += self.vel_y
 
-            # Обработка коллизий с платформами
             self.in_air = True  # Предполагаем, что в воздухе, пока не найдем опору
-            for tile in world.tile_list:
+            for tile in world.breaking_platform_group:
                 # Коллизия по X
-                if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
+                if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
                     dx = 0
+
                 # Коллизия по Y
-                if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
+                if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
                     # Удар головой
                     if self.vel_y < 0:
-                        dy = tile[1].bottom - self.rect.top
+                        dy = tile.rect.bottom - self.rect.top
                         self.vel_y = 0
                     # Приземление
                     elif self.vel_y >= 0:
-                        dy = tile[1].top - self.rect.bottom
+                        dy = tile.rect.top - self.rect.bottom
                         self.vel_y = 0
                         self.in_air = False
+
                         # Устанавливаем стандартный спрайт при приземлении
                         if self.direction == 1:
                             self.image = self.images_right[self.index]
                         else:
                             self.image = self.images_left[self.index]
+
+                        # >>> Запуск таймера исчезновения платформы (если она еще не исчезла)
+                        if hasattr(tile, "start_disappear_timer") and not tile.is_disappeared:
+                            tile.start_disappear_timer()
 
             # Сбор монет
             collected_coins = pygame.sprite.spritecollide(self, coin_group, True)
@@ -137,6 +142,7 @@ class Player:
         # Отрисовка персонажа
         screen.blit(self.image, self.rect)
         return game_over
+
 
     ## \brief Метод reset()
     #

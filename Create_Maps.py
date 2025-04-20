@@ -152,9 +152,8 @@ class LevelEditor:
             path = os.path.join(self.levels_dir, f"{self.filename}.pkl")
             with open(path, 'rb') as f:
                 self.grid = pickle.load(f)
-            print(f"Уровень {self.filename} загружен.")
-        except Exception as e:
-            print(f"Ошибка загрузки уровня: {e}")
+        except Exception:
+            pass
 
     def save_level(self):
         """Сохранение уровня"""
@@ -162,9 +161,8 @@ class LevelEditor:
             path = os.path.join(self.levels_dir, f"{self.filename}.pkl")
             with open(path, 'wb') as f:
                 pickle.dump(self.grid, f)
-            print(f"Уровень {self.filename} сохранен.")
-        except Exception as e:
-            print(f"Ошибка сохранения: {e}")
+        except Exception:
+            pass
 
     def handle_events(self):
         mouse_pos = pygame.mouse.get_pos()

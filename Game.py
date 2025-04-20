@@ -31,7 +31,6 @@ class Game:
         self.clock = pygame.time.Clock()
         self.door_group = pygame.sprite.Group()
         self.coin_group = pygame.sprite.Group()
-        self.breaking_platform_group = pygame.sprite.Group()
 
         # Получаем список всех файлов уровней
         level_files = [f for f in os.listdir('Maps') if f.endswith('.pkl')]
@@ -52,7 +51,6 @@ class Game:
         if self.total_levels > 0:
             self.load_level(self.level)
         else:
-            print("Нет доступных уровней в папке Maps/")
             self.world_data = []
         self.player = Player(100, HEIGHT - 130)
         self.game_over = 0
@@ -69,7 +67,6 @@ class Game:
         self.player.coins_collected = 0  # Сброс счётчика монет
         self.game_over = 0
         self.start_time = pygame.time.get_ticks()
-        self.world.res()
 
     ## \brief Загрузка уровня
     #
@@ -89,14 +86,12 @@ class Game:
                     raise ValueError("Ошибка: загруженные данные уровня не являются списком!")
 
                 # Создаем мир
-                self.world = World(self.world_data, self.door_group, self.coin_group, self.breaking_platform_group)
-                print(f"Уровень {level} успешно загружен!")
-            except Exception as e:
-                print(f"Ошибка загрузки уровня {level}: {e}")
+                self.world = World(self.world_data, self.door_group, self.coin_group)
+            except Exception:
                 self.world_data = []
-                self.world = World(self.world_data, self.door_group, self.coin_group, self.breaking_platform_group)  # Пустой мир
+                self.world = World(self.world_data, self.door_group, self.coin_group)  # Пустой мир
         else:
-            print(f"Файл {level_path} не найден!")
+            pass
 
     ## \brief Главное меню
     #
@@ -233,7 +228,8 @@ class Game:
             self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group, self.screen)
 
             self.draw_coin_counter()
-            self.breaking_platform_group.update(self.player)
+            self.world.breaking_platform_group.update()
+            self.world.update()
 
             if self.game_over == 1:
                 self.check_and_save_record()
