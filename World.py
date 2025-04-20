@@ -4,6 +4,7 @@ from BreakingPlatform import BreakingPlatform
 from Door import Door
 from Coin import Coin
 from Platform import Platform
+from HoverVisiblePlatform import HoverVisiblePlatform
 
 
 class World:
@@ -15,6 +16,7 @@ class World:
         self.door_group = door_group
         self.coin_group = coin_group
         self.breaking_platform_group = pygame.sprite.Group()
+        self.hover_visible_platform_group = pygame.sprite.Group()
 
         self.textures = {
             1: pygame.image.load("Assets/platform.png").convert_alpha(),
@@ -49,15 +51,20 @@ class World:
                     platform = BreakingPlatform(x, y, TILE_SIZE, TILE_SIZE)
                     self.breaking_platform_group.add(platform)
 
+                elif tile == 6:
+                    platform = HoverVisiblePlatform(x, y, TILE_SIZE, TILE_SIZE)
+                    self.hover_visible_platform_group.add(platform)
+
     def draw(self, screen):
         self.platform_group.draw(screen)
         self.door_group.draw(screen)
         self.coin_group.update()
         self.coin_group.draw(screen)
         self.breaking_platform_group.draw(screen)
+        self.hover_visible_platform_group.draw(screen)
 
     def update(self):
         """Обновляет поведение интерактивных объектов"""
-        for platform in self.breaking_platform_group:
+        for platform in self.breaking_platform_group.sprites() + self.hover_visible_platform_group.sprites():
             platform.update()
 

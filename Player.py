@@ -96,7 +96,8 @@ class Player:
             dy += self.vel_y
 
             self.in_air = True  # Предполагаем, что в воздухе, пока не найдем опору
-            for tile in world.breaking_platform_group:
+            for tile in world.platform_group.sprites() + world.breaking_platform_group.sprites() \
+                    + world.hover_visible_platform_group.sprites():
                 # Коллизия по X
                 if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
                     dx = 0
@@ -119,9 +120,10 @@ class Player:
                         else:
                             self.image = self.images_left[self.index]
 
-                        # >>> Запуск таймера исчезновения платформы (если она еще не исчезла)
-                        if hasattr(tile, "start_disappear_timer") and not tile.is_disappeared:
-                            tile.start_disappear_timer()
+                        # Только для ломающихся платформ
+                        if tile in world.breaking_platform_group:
+                            if hasattr(tile, "start_disappear_timer") and not tile.is_disappeared:
+                                tile.start_disappear_timer()
 
             # Сбор монет
             collected_coins = pygame.sprite.spritecollide(self, coin_group, True)

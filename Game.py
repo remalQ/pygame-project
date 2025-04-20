@@ -229,6 +229,7 @@ class Game:
 
             self.draw_coin_counter()
             self.world.breaking_platform_group.update()
+            self.world.hover_visible_platform_group.update()
             self.world.update()
 
             if self.game_over == 1:
