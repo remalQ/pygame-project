@@ -32,16 +32,13 @@ class Game:
         self.door_group = pygame.sprite.Group()
         self.coin_group = pygame.sprite.Group()
 
-        # Получаем список всех файлов уровней
         level_files = [f for f in os.listdir('Maps') if f.endswith('.pkl')]
 
-        # Безопасная сортировка по номеру уровня
         def extract_level_number(filename):
             try:
-                # Удаляем расширение и префикс 'level', затем преобразуем в число
                 return int(filename.split('.')[0].replace('level', ''))
             except ValueError:
-                return 0  # Для файлов с некорректными именами
+                return 0
 
         level_files.sort(key=extract_level_number)
         self.total_levels = len(level_files)
@@ -58,22 +55,18 @@ class Game:
         self.current_time = 0
         self.settings_menu = SettingsMenu()
         self.help_menu = HelpMenu()
+        self.level_menu = LevelMenu(self.total_levels)  # Добавляем для доступа к unlock_next_level
 
     def reset_level(self, level):
-        """Сбрасывает уровень и позицию игрока"""
         self.load_level(level)
         self.player.reset(100, HEIGHT - 130)
-        self.player.coins_collected = 0  # Сброс счётчика монет
+        self.player.coins_collected = 0
         self.game_over = 0
         self.start_time = pygame.time.get_ticks()
 
-    ## \brief Загрузка уровня
-    #
-    # Загружает данные уровня из файла.
-    # @param level Номер загружаемого уровня.
     def load_level(self, level):
         self.player = Player(100, HEIGHT - 130)
-        level_path = f'Maps/level{level}.pkl'  # Исправлено для соответствия именам файлов
+        level_path = f'Maps/level{level}.pkl'
         self.door_group = Group()
         self.coin_group = Group()
 
@@ -81,23 +74,15 @@ class Game:
             try:
                 with open(level_path, 'rb') as pickle_in:
                     self.world_data = pickle.load(pickle_in)
-
                 if not isinstance(self.world_data, list):
                     raise ValueError("Ошибка: загруженные данные уровня не являются списком!")
-
-                # Создаем мир
                 self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
-
             except Exception:
                 self.world_data = []
                 self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
-
         else:
             pass
 
-    ## \brief Главное меню
-    #
-    # Отображает главное меню с возможностью начать игру или выйти.
     def show_main_menu(self):
         menu_active = True
         start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 200, GRAY, WHITE)
@@ -120,35 +105,30 @@ class Game:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if start_button.is_clicked(pygame.mouse.get_pos()):
-                        level_menu = LevelMenu(self.total_levels)
-                        selected_level = level_menu.show(self.screen)
+                        selected_level = self.level_menu.show(self.screen)
                         if selected_level:
                             self.level = selected_level
                             self.reset_level(self.level)
-                            self.start_time = pygame.time.get_ticks()  # Запуск таймера
-                            pygame.event.clear()  # Очищаем очередь событий
+                            self.start_time = pygame.time.get_ticks()
+                            pygame.event.clear()
                             menu_active = False
                             return
-
                     if leaderboard_button.is_clicked(pygame.mouse.get_pos()):
                         leaderboard_menu = LeaderboardMenu(self.records_db)
                         leaderboard_menu.show(self.screen)
-
                     if settings_button.is_clicked(pygame.mouse.get_pos()):
                         self.settings_menu.show(self.screen)
-
                     if help_button.is_clicked(pygame.mouse.get_pos()):
                         self.help_menu.show(self.screen)
-
                     if exit_button.is_clicked(pygame.mouse.get_pos()):
                         pygame.quit()
                         sys.exit()
 
             pygame.display.flip()
 
-    ## \brief Меню паузы
-    #
-    # Отображает меню паузы с возможностью продолжить игру или выйти в главное меню.
+
+
+
     def show_pause_menu(self):
         pause_active = True
         continue_button = Button("Продолжить", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
@@ -172,9 +152,7 @@ class Game:
 
             pygame.display.flip()
 
-    ## \brief Экран завершения игры
-    #
-    # Отображает экран завершения игры, если все уровни пройдены.
+
     def show_game_completed_screen(self):
         completed_active = True
         main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
@@ -197,15 +175,14 @@ class Game:
 
             pygame.display.flip()
 
+
     def check_and_save_record(self):
-        if self.game_over == 1:  # Если уровень пройден
+        if self.game_over == 1:
             completion_time = self.current_time
-            player_name = "Player"  # Можно запросить имя игрока или использовать сохраненное
+            player_name = "Player"
             self.records_db.add_record(player_name, completion_time, self.level)
 
-    ## \brief Основной цикл игры
-    #
-    # Запускает игровой процесс, обрабатывает события и обновляет экран.
+
     def run(self):
         self.show_main_menu()
         running = True
@@ -215,7 +192,7 @@ class Game:
             self.screen.fill((255, 255, 255))
 
             if self.game_over == 0:
-                self.current_time = (pygame.time.get_ticks() - self.start_time) / 1000  # В секундах
+                self.current_time = (pygame.time.get_ticks() - self.start_time) / 1000
 
             self.world.draw(self.screen)
 
@@ -227,6 +204,7 @@ class Game:
 
             if self.game_over == 1:
                 self.check_and_save_record()
+                self.level_menu.unlock_next_level(self.level)  # Разблокируем следующий уровень
                 if self.level < self.total_levels:
                     self.level += 1
                     self.reset_level(self.level)
