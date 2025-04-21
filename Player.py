@@ -5,20 +5,15 @@ import pygame
 from Const_Values import *
 from Create_Maps import TILE_SIZE
 
-
 class Player:
     def __init__(self, x, y):
+        self.hitbox_width = 28
+        self.hitbox_height = 90
+        self.offset_x = (80 - self.hitbox_width) // 2
         self.reset(x, y)
         self.coins_collected = 0
         self.coin_image = pygame.image.load("Coins/Gold_1.png")
         self.coin_image = pygame.transform.scale(self.coin_image, (40, 40))
-
-    def update_hitbox(self):
-        """Обновляет хитбокс по текущему изображению, сужая его по ширине на 30px (по 15px с каждой стороны)"""
-        center = self.rect.center
-        self.rect = self.image.get_rect()
-        self.rect.inflate_ip(-20, 0)
-        self.rect.center = center
 
     def update(self, game_over, world, door_group, coin_group, screen):
         dx = 0
@@ -32,7 +27,6 @@ class Player:
                 self.vel_y = -15
                 self.jumped = True
                 self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
-                self.update_hitbox()
 
             if not key[pygame.K_SPACE]:
                 self.jumped = False
@@ -45,7 +39,6 @@ class Player:
                     self.counter = 0
                     self.index = (self.index + 1) % len(self.images_left)
                     self.image = self.images_left[self.index]
-                    self.update_hitbox()
 
             if key[pygame.K_d]:
                 dx += 5
@@ -55,16 +48,13 @@ class Player:
                     self.counter = 0
                     self.index = (self.index + 1) % len(self.images_right)
                     self.image = self.images_right[self.index]
-                    self.update_hitbox()
 
             if self.in_air:
                 self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
-                self.update_hitbox()
             elif not key[pygame.K_a] and not key[pygame.K_d]:
                 self.counter = 0
                 self.index = 0
                 self.image = self.images_right[self.index] if self.direction == 1 else self.images_left[self.index]
-                self.update_hitbox()
 
             self.vel_y += 1
             if self.vel_y > 10:
@@ -72,8 +62,11 @@ class Player:
             dy += self.vel_y
 
             self.in_air = True
-            for tile in world.platform_group.sprites() + world.breaking_platform_group.sprites() \
-                    + world.hover_visible_platform_group.sprites() + world.moving_platform_group.sprites():
+            for tile in (world.platform_group.sprites() +
+                         world.breaking_platform_group.sprites() +
+                         world.hover_visible_platform_group.sprites() +
+                         world.moving_platform_group.sprites()):
+                # Проверка коллизий с учётом смещения
                 if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
                     dx = 0
 
@@ -85,8 +78,6 @@ class Player:
                         dy = tile.rect.top - self.rect.bottom
                         self.vel_y = 0
                         self.in_air = False
-                        self.image = self.images_right[self.index] if self.direction == 1 else self.images_left[self.index]
-                        self.update_hitbox()
 
                         if tile in world.breaking_platform_group:
                             if hasattr(tile, "start_disappear_timer") and not tile.is_disappeared:
@@ -95,24 +86,8 @@ class Player:
             collected_coins = pygame.sprite.spritecollide(self, coin_group, True)
             self.coins_collected += len(collected_coins)
 
-            for door in door_group:
-                if self.rect.colliderect(door.rect):
-                    if door.image == door.opened:
-                        game_over = 1  # Прошел уровень
-                    else:
-                        # Упираемся в дверь (как в обычную стену)
-                        if dx > 0:  # Двигается вправо
-                            dx = door.rect.left - self.rect.right
-                        elif dx < 0:  # Двигается влево
-                            dx = door.rect.right - self.rect.left
-
-                        if dy > 0:  # Падает сверху
-                            dy = door.rect.top - self.rect.bottom
-                            self.vel_y = 0
-                            self.in_air = False
-                        elif dy < 0:  # Прыгает снизу
-                            dy = door.rect.bottom - self.rect.top
-                            self.vel_y = 0
+            if pygame.sprite.spritecollide(self, door_group, False):
+                game_over = 1
 
             if self.rect.y > HEIGHT:
                 game_over = -1
@@ -120,7 +95,14 @@ class Player:
             self.rect.x += dx
             self.rect.y += dy
 
-        screen.blit(self.image, self.rect)
+        # Отрисовка с учётом смещения
+        screen.blit(self.image, (self.rect.x - self.offset_x, self.rect.bottom - self.image.get_height()))
+
+        # Отрисовка хитбокса (для отладки)
+        hitbox_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+        hitbox_surface.fill((0, 0, 255, 100))
+        screen.blit(hitbox_surface, (self.rect.x, self.rect.y))
+
         return game_over
 
     def reset(self, x, y):
@@ -142,8 +124,9 @@ class Player:
 
         self.direction = 1
         self.image = self.images_right[self.index]
-        self.rect = self.image.get_rect()
-        self.rect.center = (x + self.image.get_width() // 2, y + self.image.get_height() // 2)
+
+        # Хитбокс с учётом смещения
+        self.rect = pygame.Rect(x, y, self.hitbox_width, self.hitbox_height)
 
         self.vel_y = 0
         self.jumped = False
