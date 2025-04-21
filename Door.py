@@ -8,13 +8,24 @@ from Const_Values import *
 
 
 class Door(pygame.sprite.Sprite):
-    ## \brief Конструктор класса
-    #
-    # Инициализирует дверь, загружая изображение и устанавливая ее позицию.
-    # @param x Позиция двери по оси X
-    # @param y Позиция двери по оси Y
     def __init__(self, x, y):
         super().__init__()
-        img = pygame.image.load('Assets/door.png')  # Загружаем изображение двери
-        self.image = pygame.transform.scale(img, (tile_size * 3.5, tile_size * 3.5))  # Масштабируем изображение
+        self.opened_original = pygame.image.load('Assets/opened_door.png')
+        self.closed_original = pygame.image.load('Assets/closed_door.png')
+
+        # Размер двери: 2x4 тайла
+        self.width = tile_size * 2
+        self.height = tile_size * 4
+
+        self.opened = pygame.transform.scale(self.opened_original, (self.width, self.height))
+        self.closed = pygame.transform.scale(self.closed_original, (self.width, self.height))
+
+        self.image = self.opened
         self.rect = self.image.get_rect(bottomleft=(x, y + tile_size * 2))
+
+    def update(self, player=None, coins_group=None):
+        # if player and coins_group and len(coins_group) == 0:
+        #     self.image = self.opened
+        # else:
+        #     self.image = self.closed
+        pass

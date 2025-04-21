@@ -95,8 +95,24 @@ class Player:
             collected_coins = pygame.sprite.spritecollide(self, coin_group, True)
             self.coins_collected += len(collected_coins)
 
-            if pygame.sprite.spritecollide(self, door_group, False):
-                game_over = 1
+            for door in door_group:
+                if self.rect.colliderect(door.rect):
+                    if door.image == door.opened:
+                        game_over = 1  # Прошел уровень
+                    else:
+                        # Упираемся в дверь (как в обычную стену)
+                        if dx > 0:  # Двигается вправо
+                            dx = door.rect.left - self.rect.right
+                        elif dx < 0:  # Двигается влево
+                            dx = door.rect.right - self.rect.left
+
+                        if dy > 0:  # Падает сверху
+                            dy = door.rect.top - self.rect.bottom
+                            self.vel_y = 0
+                            self.in_air = False
+                        elif dy < 0:  # Прыгает снизу
+                            dy = door.rect.bottom - self.rect.top
+                            self.vel_y = 0
 
             if self.rect.y > HEIGHT:
                 game_over = -1

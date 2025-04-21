@@ -19,6 +19,7 @@ class World:
         self.breaking_platform_group = pygame.sprite.Group()
         self.hover_visible_platform_group = pygame.sprite.Group()
         self.moving_platform_group = pygame.sprite.Group()
+        self.player = player
 
         self.textures = {
             1: pygame.image.load("Assets/platform.png").convert_alpha(),
@@ -58,7 +59,7 @@ class World:
                     self.hover_visible_platform_group.add(platform)
 
                 elif tile == 6:
-                    platform = MovingPlatform(x, y, TILE_SIZE, TILE_SIZE, player)
+                    platform = MovingPlatform(x, y, TILE_SIZE, TILE_SIZE, self.player)
                     self.moving_platform_group.add(platform)
 
     def draw(self, screen):
@@ -75,4 +76,7 @@ class World:
         for platform in self.breaking_platform_group.sprites() + self.hover_visible_platform_group.sprites() \
                 + self.moving_platform_group.sprites():
             platform.update()
+
+        for door in self.door_group:
+            door.update(self.player, self.coin_group)
 

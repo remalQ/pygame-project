@@ -3,7 +3,7 @@ from Platforms.Platform import Platform
 
 
 class BreakingPlatform(Platform):
-    def __init__(self, x, y, width, height, image=None, break_time=1000):
+    def __init__(self, x, y, width, height, image=None, break_time=300):
         super().__init__(x, y, width, height, image)
 
         self.original_image = self.image.copy()

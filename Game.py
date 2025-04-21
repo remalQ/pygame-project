@@ -203,14 +203,6 @@ class Game:
             player_name = "Player"  # Можно запросить имя игрока или использовать сохраненное
             self.records_db.add_record(player_name, completion_time, self.level)
 
-    def draw_coin_counter(self):
-        font = pygame.font.Font("Fonts/Monocraft.otf", 40)
-        text = font.render(str(self.player.coins_collected), True, BLACK)
-
-        # Отрисовываем иконку монеты и число собранных монет
-        self.screen.blit(self.player.coin_image, (20, 20))  # Монета слева сверху
-        self.screen.blit(text, (70, 30))  # Число рядом
-
     ## \brief Основной цикл игры
     #
     # Запускает игровой процесс, обрабатывает события и обновляет экран.
@@ -229,7 +221,6 @@ class Game:
 
             self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group, self.screen)
 
-            self.draw_coin_counter()
             self.world.breaking_platform_group.update()
             self.world.hover_visible_platform_group.update()
             self.world.update()
