@@ -20,12 +20,13 @@ class Door(pygame.sprite.Sprite):
         self.opened = pygame.transform.scale(self.opened_original, (self.width, self.height))
         self.closed = pygame.transform.scale(self.closed_original, (self.width, self.height))
 
-        self.image = self.opened
+        self.image = self.closed
+
         self.rect = self.image.get_rect(bottomleft=(x, y + tile_size * 2))
 
     def update(self, player=None, coins_group=None):
-        # if player and coins_group and len(coins_group) == 0:
-        #     self.image = self.opened
-        # else:
-        #     self.image = self.closed
-        pass
+        if coins_group is not None and len(coins_group) == 0:
+            self.image = self.opened
+        else:
+            self.image = self.closed
+
