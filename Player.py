@@ -98,11 +98,6 @@ class Player:
         # Отрисовка с учётом смещения
         screen.blit(self.image, (self.rect.x - self.offset_x, self.rect.bottom - self.image.get_height()))
 
-        # Отрисовка хитбокса (для отладки)
-        hitbox_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
-        hitbox_surface.fill((0, 0, 255, 100))
-        screen.blit(hitbox_surface, (self.rect.x, self.rect.y))
-
         return game_over
 
     def reset(self, x, y):
