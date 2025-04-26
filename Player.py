@@ -6,10 +6,12 @@ from Const_Values import *
 from Create_Maps import TILE_SIZE
 
 class Player:
-    def __init__(self, x, y):
+    def __init__(self, x, y, coin_sound, jump_sound):
         self.hitbox_width = 28
         self.hitbox_height = 90
         self.offset_x = (80 - self.hitbox_width) // 2
+        self.coin_sound = coin_sound
+        self.jump_sound = jump_sound
         self.reset(x, y)
         self.coins_collected = 0
         self.coin_image = pygame.image.load("Coins/Gold_1.png")
@@ -26,6 +28,7 @@ class Player:
             if key[pygame.K_SPACE] and not self.jumped and not self.in_air:
                 self.vel_y = -15
                 self.jumped = True
+                self.jump_sound.play()  # Проиграть звук прыжка
                 self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
 
             if not key[pygame.K_SPACE]:
@@ -84,6 +87,8 @@ class Player:
                                 tile.start_disappear_timer()
 
             collected_coins = pygame.sprite.spritecollide(self, coin_group, True)
+            if collected_coins:
+                self.coin_sound.play()  # Проиграть звук монеты
             self.coins_collected += len(collected_coins)
 
             for door in door_group:
