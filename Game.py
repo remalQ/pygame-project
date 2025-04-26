@@ -11,6 +11,7 @@ from RecordsDB import RecordsDB
 from Menus.LeaderboardMenu import LeaderboardMenu
 from Menus.SettingsMenu import SettingsMenu
 from Menus.HelpMenu import HelpMenu
+import pygame
 
 
 """
@@ -23,19 +24,29 @@ from Menus.HelpMenu import HelpMenu
 class Game:
     ## \brief Конструктор класса
     #
-    # Инициализирует основные параметры игры, загружает первый уровень и звуки.
+    # Инициализирует основные параметры игры, загружает первый уровень, инициализирует музыку и звуки.
     def __init__(self):
         pygame.init()
+        pygame.mixer.init()  # Инициализация микшера для музыки и звуков
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption('Платформер')
         self.clock = pygame.time.Clock()
         self.door_group = pygame.sprite.Group()
         self.coin_group = pygame.sprite.Group()
 
-        # Инициализация звуков
-        pygame.mixer.init()
-        self.coin_sound = pygame.mixer.Sound('Sounds/coin.wav')
-        self.jump_sound = pygame.mixer.Sound('Sounds/jump.wav')
+        # Инициализация музыки
+        self.music_file = "Sounds/back.mp3"  # Укажите путь к вашему музыкальному файлу
+        self.music_playing = False
+        self.music_position = 0
+
+        # Инициализация звуковых эффектов
+        try:
+            self.coin_sound = pygame.mixer.Sound("Sounds/coin.wav")  # Укажите путь к звуку монеты
+            self.jump_sound = pygame.mixer.Sound("Sounds/jump.wav")  # Укажите путь к звуку прыжка
+        except pygame.error as e:
+            print(f"Ошибка загрузки звуковых эффектов: {e}")
+            self.coin_sound = None
+            self.jump_sound = None
 
         level_files = [f for f in os.listdir('Maps') if f.endswith('.pkl')]
 
@@ -60,7 +71,7 @@ class Game:
         self.current_time = 0
         self.settings_menu = SettingsMenu()
         self.help_menu = HelpMenu()
-        self.level_menu = LevelMenu(self.total_levels)  # Добавляем для доступа к unlock_next_level
+        self.level_menu = LevelMenu(self.total_levels)
 
     def reset_level(self, level):
         self.load_level(level)
@@ -68,8 +79,10 @@ class Game:
         self.player.coins_collected = 0
         self.game_over = 0
         self.start_time = pygame.time.get_ticks()
+        # Музыка не перезапускается при сбросе уровня
 
     def load_level(self, level):
+        # Передаём звуковые эффекты при создании игрока
         self.player = Player(100, HEIGHT - 130, self.coin_sound, self.jump_sound)
         level_path = f'Maps/level{level}.pkl'
         self.door_group = Group()
@@ -87,8 +100,32 @@ class Game:
                 self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
         else:
             pass
+        # Музыка не перезапускается при загрузке уровня
+
+    def start_music(self):
+        """Запускает музыку с сохранённой позиции или с начала."""
+        if not self.music_playing:
+            try:
+                pygame.mixer.music.load(self.music_file)
+                pygame.mixer.music.play(-1, start=self.music_position / 1000)  # Позиция в секундах
+                self.music_playing = True
+            except pygame.error as e:
+                print(f"Ошибка загрузки музыки: {e}")
+
+    def stop_music(self):
+        """Останавливает музыку и сохраняет текущую позицию."""
+        if self.music_playing:
+            self.music_position = pygame.mixer.music.get_pos()  # Сохраняем текущую позицию
+            pygame.mixer.music.stop()
+            self.music_playing = False
+
+    def reset_music(self):
+        """Сбрасывает музыку для начала с нуля."""
+        self.stop_music()
+        self.music_position = 0
 
     def show_main_menu(self):
+        self.reset_music()  # Сбрасываем музыку при входе в главное меню
         menu_active = True
         start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 200, GRAY, WHITE)
         settings_button = Button("Настройки", WIDTH // 2, HEIGHT // 2 - 100, GRAY, WHITE)
@@ -115,8 +152,7 @@ class Game:
                             self.level = selected_level
                             self.reset_level(self.level)
                             self.start_time = pygame.time.get_ticks()
-                            pygame.mixer.music.load('Sounds/back.mp3')
-                            pygame.mixer.music.play(-1)  # Начать воспроизведение фоновой музыки
+                            self.start_music()  # Запускаем музыку при входе в уровень
                             pygame.event.clear()
                             menu_active = False
                             return
@@ -138,7 +174,6 @@ class Game:
         continue_button = Button("Продолжить", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
         main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
 
-        pygame.mixer.music.pause()  # Приостановить музыку на паузе
         while pause_active:
             self.screen.fill(BLACK)
             continue_button.draw(self.screen)
@@ -150,10 +185,8 @@ class Game:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if continue_button.is_clicked(pygame.mouse.get_pos()):
-                        pygame.mixer.music.unpause()  # Возобновить музыку
                         pause_active = False
                     if main_menu_button.is_clicked(pygame.mouse.get_pos()):
-                        pygame.mixer.music.stop()  # Остановить музыку при выходе в меню
                         self.show_main_menu()
                         pause_active = False
 
@@ -163,7 +196,6 @@ class Game:
         completed_active = True
         main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
 
-        pygame.mixer.music.stop()  # Остановить музыку при завершении игры
         while completed_active:
             self.screen.fill(BLACK)
             font = pygame.font.Font("Fonts/Monocraft.otf", 40)
@@ -209,14 +241,13 @@ class Game:
 
             if self.game_over == 1:
                 self.check_and_save_record()
-                self.level_menu.unlock_next_level(self.level)  # Разблокируем следующий уровень
+                self.level_menu.unlock_next_level(self.level)
                 if self.level < self.total_levels:
                     self.level += 1
                     self.reset_level(self.level)
                     self.game_over = 0
                     self.start_time = pygame.time.get_ticks()
-                    pygame.mixer.music.load('Sounds/back.mp3')
-                    pygame.mixer.music.play(-1)  # Возобновить музыку при переходе на новый уровень
+                    # Музыка продолжает играть без перерыва
                 else:
                     self.show_game_completed_screen()
                     self.game_over = 0
@@ -225,8 +256,7 @@ class Game:
                 self.reset_level(self.level)
                 self.game_over = 0
                 self.start_time = pygame.time.get_ticks()
-                pygame.mixer.music.load('Sounds/back.mp3')
-                pygame.mixer.music.play(-1)  # Возобновить музыку при рестарте уровня
+                # Музыка продолжает играть без перерыва
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -237,5 +267,4 @@ class Game:
 
             pygame.display.flip()
 
-        pygame.mixer.music.stop()  # Остановить музыку при выходе из игры
         pygame.quit()
