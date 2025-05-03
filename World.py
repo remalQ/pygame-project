@@ -7,7 +7,6 @@ from Platforms.Platform import Platform
 from Platforms.HoverVisiblePlatform import HoverVisiblePlatform
 from Platforms.MovingPlatform import MovingPlatform
 
-
 class World:
     """Класс World создает игровой мир на основе загруженных данных и отрисовывает его."""
 
@@ -19,6 +18,7 @@ class World:
         self.breaking_platform_group = pygame.sprite.Group()
         self.hover_visible_platform_group = pygame.sprite.Group()
         self.moving_platform_group = pygame.sprite.Group()
+        self.texts = []  # Список текстовых надписей
         self.player = player
 
         self.textures = {
@@ -26,7 +26,15 @@ class World:
             4: None
         }
 
-        for row_count, row in enumerate(data):
+        if isinstance(data, dict):
+            level_data = data.get('grid', [])
+            self.texts = data.get('texts', [])
+        else:
+            level_data = data
+            self.texts = []
+
+        # Загрузка тайлов
+        for row_count, row in enumerate(level_data):
             for col_count, tile in enumerate(row):
                 x, y = col_count * TILE_SIZE, row_count * TILE_SIZE
 
@@ -36,15 +44,15 @@ class World:
                     self.platform_group.add(platform)
 
                 elif tile == 2:
-                    if (row_count < len(data) - 1 and col_count < len(row) - 1 and
-                            data[row_count][col_count + 1] == 2 and
-                            data[row_count + 1][col_count] == 2 and
-                            data[row_count + 1][col_count + 1] == 2):
+                    if (row_count < len(level_data) - 1 and col_count < len(row) - 1 and
+                            level_data[row_count][col_count + 1] == 2 and
+                            level_data[row_count + 1][col_count] == 2 and
+                            level_data[row_count + 1][col_count + 1] == 2):
                         door = Door(x, y)
                         self.door_group.add(door)
-                        data[row_count][col_count + 1] = 0
-                        data[row_count + 1][col_count] = 0
-                        data[row_count + 1][col_count + 1] = 0
+                        level_data[row_count][col_count + 1] = 0
+                        level_data[row_count + 1][col_count] = 0
+                        level_data[row_count + 1][col_count + 1] = 0
 
                 elif tile == 3:
                     coin = Coin(x, y)
@@ -70,13 +78,18 @@ class World:
         self.breaking_platform_group.draw(screen)
         self.hover_visible_platform_group.draw(screen)
         self.moving_platform_group.draw(screen)
+        # Отрисовка текстовых надписей чёрным цветом для игры
+        for text_data in self.texts:
+            font = pygame.font.Font("Fonts/Monocraft.otf", text_data['font_size'])
+            text_surface = font.render(text_data['text'], True, (0, 0, 0))  # Чёрный цвет
+            screen.blit(text_surface, (text_data['x'], text_data['y']))
 
     def update(self):
         """Обновляет поведение интерактивных объектов"""
-        for platform in self.breaking_platform_group.sprites() + self.hover_visible_platform_group.sprites() \
-                + self.moving_platform_group.sprites():
+        for platform in (self.breaking_platform_group.sprites() +
+                         self.hover_visible_platform_group.sprites() +
+                         self.moving_platform_group.sprites()):
             platform.update()
 
         for door in self.door_group:
             door.update(self.player, self.coin_group)
-

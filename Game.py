@@ -13,13 +13,11 @@ from Menus.SettingsMenu import SettingsMenu
 from Menus.HelpMenu import HelpMenu
 import pygame
 
-
 """
 Класс Game
 
 Отвечает за управление игровым процессом: загрузку уровней, отображение меню, обработку событий и обновление состояния игры.
 """
-
 
 class Game:
     ## \brief Конструктор класса
@@ -29,7 +27,7 @@ class Game:
         pygame.init()
         pygame.mixer.init()  # Инициализация микшера для музыки и звуков
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption('Платформер')
+        pygame.display.set_caption('Mind flip')
         self.clock = pygame.time.Clock()
         self.door_group = pygame.sprite.Group()
         self.coin_group = pygame.sprite.Group()
@@ -92,14 +90,16 @@ class Game:
             try:
                 with open(level_path, 'rb') as pickle_in:
                     self.world_data = pickle.load(pickle_in)
-                if not isinstance(self.world_data, list):
-                    raise ValueError("Ошибка: загруженные данные уровня не являются списком!")
+                if not isinstance(self.world_data, (list, dict)):
+                    raise ValueError("Ошибка: загруженные данные уровня не являются списком или словарем!")
                 self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
-            except Exception:
-                self.world_data = []
+            except Exception as e:
+                print(f"Ошибка загрузки уровня: {e}")
+                self.world_data = {'grid': [], 'texts': []} if isinstance(self.world_data, dict) else []
                 self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
         else:
-            pass
+            self.world_data = {'grid': [], 'texts': []}
+            self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
         # Музыка не перезапускается при загрузке уровня
 
     def start_music(self):
