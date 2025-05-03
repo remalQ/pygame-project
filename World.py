@@ -7,6 +7,7 @@ from Platforms.Platform import Platform
 from Platforms.HoverVisiblePlatform import HoverVisiblePlatform
 from Platforms.MovingPlatform import MovingPlatform
 
+
 class World:
     """Класс World создает игровой мир на основе загруженных данных и отрисовывает его."""
 
@@ -18,8 +19,10 @@ class World:
         self.breaking_platform_group = pygame.sprite.Group()
         self.hover_visible_platform_group = pygame.sprite.Group()
         self.moving_platform_group = pygame.sprite.Group()
-        self.texts = []  # Список текстовых надписей
+        self.drawable_platform_group = pygame.sprite.Group()  # Группа для рисованных платформ
+        self.texts = []
         self.player = player
+        self.allow_drawing = False  # По умолчанию рисование запрещено
 
         self.textures = {
             1: pygame.image.load("Assets/platform.png").convert_alpha(),
@@ -70,6 +73,16 @@ class World:
                     platform = MovingPlatform(x, y, TILE_SIZE, TILE_SIZE, self.player)
                     self.moving_platform_group.add(platform)
 
+    def add_drawable_platform(self, x, y):
+        """Добавляет рисованную платформу в указанных координатах"""
+        img = self.textures[1] if 1 in self.textures else None
+        platform = Platform(x, y, TILE_SIZE, TILE_SIZE, img)
+        self.drawable_platform_group.add(platform)
+
+    def reset_drawable_platforms(self):
+        """Очищает все рисованные платформы"""
+        self.drawable_platform_group.empty()
+
     def draw(self, screen):
         self.platform_group.draw(screen)
         self.door_group.draw(screen)
@@ -78,10 +91,11 @@ class World:
         self.breaking_platform_group.draw(screen)
         self.hover_visible_platform_group.draw(screen)
         self.moving_platform_group.draw(screen)
-        # Отрисовка текстовых надписей чёрным цветом для игры
+        self.drawable_platform_group.draw(screen)  # Отрисовка рисованных платформ
+
         for text_data in self.texts:
             font = pygame.font.Font("Fonts/Monocraft.otf", text_data['font_size'])
-            text_surface = font.render(text_data['text'], True, (0, 0, 0))  # Чёрный цвет
+            text_surface = font.render(text_data['text'], True, (0, 0, 0))
             screen.blit(text_surface, (text_data['x'], text_data['y']))
 
     def update(self):

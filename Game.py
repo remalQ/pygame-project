@@ -13,19 +13,10 @@ from Menus.SettingsMenu import SettingsMenu
 from Menus.HelpMenu import HelpMenu
 import pygame
 
-"""
-Класс Game
-
-Отвечает за управление игровым процессом: загрузку уровней, отображение меню, обработку событий и обновление состояния игры.
-"""
-
 class Game:
-    ## \brief Конструктор класса
-    #
-    # Инициализирует основные параметры игры, загружает первый уровень, инициализирует музыку и звуки.
     def __init__(self):
         pygame.init()
-        pygame.mixer.init()  # Инициализация микшера для музыки и звуков
+        pygame.mixer.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption('Mind flip')
         self.clock = pygame.time.Clock()
@@ -33,19 +24,23 @@ class Game:
         self.coin_group = pygame.sprite.Group()
 
         # Инициализация музыки
-        self.music_file = "Sounds/back.mp3"  # Укажите путь к вашему музыкальному файлу
+        self.music_file = "Sounds/back.mp3"
         self.music_playing = False
         self.music_position = 0
 
         # Инициализация звуковых эффектов
         try:
-            self.coin_sound = pygame.mixer.Sound("Sounds/coin.wav")  # Укажите путь к звуку монеты
-            self.jump_sound = pygame.mixer.Sound("Sounds/jump.wav")  # Укажите путь к звуку прыжка
+            self.coin_sound = pygame.mixer.Sound("Sounds/coin.wav")
+            self.jump_sound = pygame.mixer.Sound("Sounds/jump.wav")
         except pygame.error as e:
             print(f"Ошибка загрузки звуковых эффектов: {e}")
             self.coin_sound = None
             self.jump_sound = None
 
+        # Инициализация игрока
+        self.player = Player(100, HEIGHT - 130, self.coin_sound, self.jump_sound)
+
+        # Загрузка списка уровней
         level_files = [f for f in os.listdir('Maps') if f.endswith('.pkl')]
 
         def extract_level_number(filename):
@@ -62,7 +57,8 @@ class Game:
         if self.total_levels > 0:
             self.load_level(self.level)
         else:
-            self.world_data = []
+            self.world_data = {'grid': [], 'texts': []}
+            self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
         self.game_over = 0
         self.records_db = RecordsDB()
         self.start_time = 0
@@ -72,35 +68,46 @@ class Game:
         self.level_menu = LevelMenu(self.total_levels)
 
     def reset_level(self, level):
-        self.load_level(level)
-        self.player.reset(100, HEIGHT - 130)
         self.player.coins_collected = 0
         self.game_over = 0
         self.start_time = pygame.time.get_ticks()
-        # Музыка не перезапускается при сбросе уровня
+
+        if level == 3:
+            # Для 3-го уровня - спавн в левом верхнем углу и активация падения
+            self.player.reset(100, -100)
+            self.player.start_falling()
+            self.world.allow_drawing = True
+            self.world.reset_drawable_platforms()
+        else:
+            self.player.reset(100, HEIGHT - 130)
+            self.world.allow_drawing = False
+
+        # Перезагрузка уровня для обновления мира
+        self.load_level(level)
 
     def load_level(self, level):
-        # Передаём звуковые эффекты при создании игрока
-        self.player = Player(100, HEIGHT - 130, self.coin_sound, self.jump_sound)
-        level_path = f'Maps/level{level}.pkl'
         self.door_group = Group()
         self.coin_group = Group()
 
+        # Загрузка уровня из файла для всех уровней
+        level_path = f'Maps/level{level}.pkl'
         if os.path.exists(level_path):
             try:
                 with open(level_path, 'rb') as pickle_in:
                     self.world_data = pickle.load(pickle_in)
                 if not isinstance(self.world_data, (list, dict)):
                     raise ValueError("Ошибка: загруженные данные уровня не являются списком или словарем!")
-                self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
             except Exception as e:
                 print(f"Ошибка загрузки уровня: {e}")
-                self.world_data = {'grid': [], 'texts': []} if isinstance(self.world_data, dict) else []
-                self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
+                self.world_data = {'grid': [], 'texts': []}
         else:
             self.world_data = {'grid': [], 'texts': []}
-            self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
-        # Музыка не перезапускается при загрузке уровня
+
+        self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
+        if level == 3:
+            self.world.allow_drawing = True
+        else:
+            self.world.allow_drawing = False
 
     def start_music(self):
         """Запускает музыку с сохранённой позиции или с начала."""

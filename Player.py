@@ -1,5 +1,5 @@
 """@package Player
-Класс игрока
+Класс игрока с модификациями для 3-го уровня (режим падения)
 """
 import pygame
 from Const_Values import *
@@ -16,6 +16,11 @@ class Player:
         self.coins_collected = 0
         self.coin_image = pygame.image.load("Coins/Gold_1.png")
         self.coin_image = pygame.transform.scale(self.coin_image, (40, 40))
+        self.drawing_platform = False
+        self.platform_start_pos = None
+        self.platform_end_pos = None
+        self.falling_mode = False  # Режим падения для 3-го уровня
+        self.fall_speed = 0  # Скорость падения
 
     def update(self, game_over, world, door_group, coin_group, screen):
         dx = 0
@@ -24,63 +29,98 @@ class Player:
 
         if game_over == 0:
             key = pygame.key.get_pressed()
+            mouse_buttons = pygame.mouse.get_pressed()
 
-            if key[pygame.K_SPACE] and not self.jumped and not self.in_air:
+            # Обработка падения в специальном режиме
+            if self.falling_mode:
+                self.fall_speed += 0.5  # Ускорение падения
+                dy += self.fall_speed
+
+                # Ограничение максимальной скорости падения
+                if self.fall_speed > 15:
+                    self.fall_speed = 15
+            else:
+                # Обычное управление, если не в режиме падения
+                if key[pygame.K_a]:
+                    dx -= 5
+                    self.counter += 1
+                    self.direction = -1
+                    if not self.in_air and self.counter > walk_cooldown:
+                        self.counter = 0
+                        self.index = (self.index + 1) % len(self.images_left)
+                        self.image = self.images_left[self.index]
+
+                if key[pygame.K_d]:
+                    dx += 5
+                    self.counter += 1
+                    self.direction = 1
+                    if not self.in_air and self.counter > walk_cooldown:
+                        self.counter = 0
+                        self.index = (self.index + 1) % len(self.images_right)
+                        self.image = self.images_right[self.index]
+
+            # Обработка рисования платформ (только если мир разрешает)
+            if hasattr(world, 'allow_drawing') and world.allow_drawing:
+                mouse_pos = pygame.mouse.get_pos()
+
+                if mouse_buttons[0]:  # Левая кнопка мыши нажата
+                    if not self.drawing_platform:
+                        self.drawing_platform = True
+                        self.platform_start_pos = (mouse_pos[0] // TILE_SIZE) * TILE_SIZE
+                    self.platform_end_pos = (mouse_pos[0] // TILE_SIZE) * TILE_SIZE
+                else:
+                    if self.drawing_platform:
+                        self.drawing_platform = False
+                        if self.platform_start_pos and self.platform_end_pos:
+                            start_x = min(self.platform_start_pos, self.platform_end_pos)
+                            end_x = max(self.platform_start_pos, self.platform_end_pos)
+                            for x in range(start_x, end_x + TILE_SIZE, TILE_SIZE):
+                                world.add_drawable_platform(x, (mouse_pos[1] // TILE_SIZE) * TILE_SIZE)
+                        self.platform_start_pos = None
+                        self.platform_end_pos = None
+
+            if key[pygame.K_SPACE] and not self.jumped and not self.in_air and not self.falling_mode:
                 self.vel_y = -15
                 self.jumped = True
-                self.jump_sound.play()  # Проиграть звук прыжка
+                self.jump_sound.play()
                 self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
 
             if not key[pygame.K_SPACE]:
                 self.jumped = False
 
-            if key[pygame.K_a]:
-                dx -= 5
-                self.counter += 1
-                self.direction = -1
-                if not self.in_air and self.counter > walk_cooldown:
+            if not self.falling_mode:
+                if self.in_air:
+                    self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
+                elif not key[pygame.K_a] and not key[pygame.K_d]:
                     self.counter = 0
-                    self.index = (self.index + 1) % len(self.images_left)
-                    self.image = self.images_left[self.index]
+                    self.index = 0
+                    self.image = self.images_right[self.index] if self.direction == 1 else self.images_left[self.index]
 
-            if key[pygame.K_d]:
-                dx += 5
-                self.counter += 1
-                self.direction = 1
-                if not self.in_air and self.counter > walk_cooldown:
-                    self.counter = 0
-                    self.index = (self.index + 1) % len(self.images_right)
-                    self.image = self.images_right[self.index]
-
-            if self.in_air:
-                self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
-            elif not key[pygame.K_a] and not key[pygame.K_d]:
-                self.counter = 0
-                self.index = 0
-                self.image = self.images_right[self.index] if self.direction == 1 else self.images_left[self.index]
-
-            self.vel_y += 1
-            if self.vel_y > 10:
-                self.vel_y = 10
-            dy += self.vel_y
+                self.vel_y += 1
+                if self.vel_y > 10:
+                    self.vel_y = 10
+                dy += self.vel_y
 
             self.in_air = True
             for tile in (world.platform_group.sprites() +
                          world.breaking_platform_group.sprites() +
                          world.hover_visible_platform_group.sprites() +
-                         world.moving_platform_group.sprites()):
-                # Проверка коллизий с учётом смещения
+                         world.moving_platform_group.sprites() +
+                         world.drawable_platform_group.sprites()):
                 if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
                     dx = 0
 
                 if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
-                    if self.vel_y < 0:
+                    if self.vel_y < 0 or self.fall_speed < 0:
                         dy = tile.rect.bottom - self.rect.top
                         self.vel_y = 0
-                    elif self.vel_y >= 0:
+                        self.fall_speed = 0
+                    elif self.vel_y >= 0 or self.fall_speed > 0:
                         dy = tile.rect.top - self.rect.bottom
                         self.vel_y = 0
+                        self.fall_speed = 0
                         self.in_air = False
+                        self.falling_mode = False  # Остановка падения при приземлении
 
                         if tile in world.breaking_platform_group:
                             if hasattr(tile, "start_disappear_timer") and not tile.is_disappeared:
@@ -88,7 +128,7 @@ class Player:
 
             collected_coins = pygame.sprite.spritecollide(self, coin_group, True)
             if collected_coins:
-                self.coin_sound.play()  # Проиграть звук монеты
+                self.coin_sound.play()
             self.coins_collected += len(collected_coins)
 
             for door in door_group:
@@ -96,7 +136,6 @@ class Player:
                     if door.image == door.opened:
                         game_over = 1
                     else:
-                        # Коллизия с закрытой дверью
                         if self.rect.right > door.rect.left and self.direction == 1:
                             dx = door.rect.left - self.rect.right
                         elif self.rect.left < door.rect.right and self.direction == -1:
@@ -108,15 +147,23 @@ class Player:
             self.rect.x += dx
             self.rect.y += dy
 
-        # Отрисовка с учётом смещения
+        # Отрисовка персонажа
         screen.blit(self.image, (self.rect.x - self.offset_x, self.rect.bottom - self.image.get_height()))
+
+        # Отрисовка временной платформы при рисовании
+        if self.drawing_platform and self.platform_start_pos and self.platform_end_pos:
+            start_x = min(self.platform_start_pos, self.platform_end_pos)
+            end_x = max(self.platform_start_pos, self.platform_end_pos)
+            height = (pygame.mouse.get_pos()[1] // TILE_SIZE) * TILE_SIZE
+            pygame.draw.rect(screen, (200, 200, 200, 150),
+                            (start_x, height, end_x - start_x + TILE_SIZE, TILE_SIZE))
 
         return game_over
 
     def reset(self, x, y):
         self.images_right = []
         self.images_left = []
-        self.index = 0
+        self.index =0
         self.counter = 0
 
         for num in range(1, 5):
@@ -133,9 +180,18 @@ class Player:
         self.direction = 1
         self.image = self.images_right[self.index]
 
-        # Хитбокс с учётом смещения
         self.rect = pygame.Rect(x, y, self.hitbox_width, self.hitbox_height)
 
         self.vel_y = 0
         self.jumped = False
         self.in_air = True
+        self.drawing_platform = False
+        self.platform_start_pos = None
+        self.platform_end_pos = None
+        self.falling_mode = False
+        self.fall_speed = 0
+
+    def start_falling(self):
+        """Активирует режим падения для 3-го уровня"""
+        self.falling_mode = True
+        self.fall_speed = 3  # Начальная скорость падения
