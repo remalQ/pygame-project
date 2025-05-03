@@ -66,6 +66,7 @@ class Game:
         self.settings_menu = SettingsMenu()
         self.help_menu = HelpMenu()
         self.level_menu = LevelMenu(self.total_levels)
+        self.deja_vu_broken = False  # Флаг для отслеживания разрыва цикла в уровне 4
 
     def reset_level(self, level):
         self.player.coins_collected = 0
@@ -84,6 +85,10 @@ class Game:
 
         # Перезагрузка уровня для обновления мира
         self.load_level(level)
+
+        # Сбрасываем флаг deja_vu_broken для нового уровня, кроме повторного входа на уровень 4
+        if level != 4 or not self.deja_vu_broken:
+            self.deja_vu_broken = False
 
     def load_level(self, level):
         self.door_group = Group()
@@ -133,6 +138,9 @@ class Game:
 
     def show_main_menu(self):
         self.reset_music()  # Сбрасываем музыку при входе в главное меню
+        # Если игрок выходит в меню с уровня 4, считаем цикл разорванным
+        if self.level == 4:
+            self.deja_vu_broken = True
         menu_active = True
         start_button = Button("Начать игру", WIDTH // 2, HEIGHT // 2 - 200, GRAY, WHITE)
         settings_button = Button("Настройки", WIDTH // 2, HEIGHT // 2 - 100, GRAY, WHITE)
@@ -249,12 +257,16 @@ class Game:
             if self.game_over == 1:
                 self.check_and_save_record()
                 self.level_menu.unlock_next_level(self.level)
-                if self.level < self.total_levels:
+                if self.level == 4 and not self.deja_vu_broken:
+                    # Для уровня 4: если цикл не разорван, просто перезапускаем уровень
+                    self.reset_level(self.level)
+                    self.game_over = 0
+                    self.start_time = pygame.time.get_ticks()
+                elif self.level < self.total_levels:
                     self.level += 1
                     self.reset_level(self.level)
                     self.game_over = 0
                     self.start_time = pygame.time.get_ticks()
-                    # Музыка продолжает играть без перерыва
                 else:
                     self.show_game_completed_screen()
                     self.game_over = 0
@@ -263,7 +275,6 @@ class Game:
                 self.reset_level(self.level)
                 self.game_over = 0
                 self.start_time = pygame.time.get_ticks()
-                # Музыка продолжает играть без перерыва
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
