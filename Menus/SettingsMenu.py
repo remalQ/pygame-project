@@ -3,12 +3,15 @@ import sys
 from Button import Button
 from Const_Values import *
 
+
 class SettingsMenu:
     def __init__(self):
         # Инициализация начальных значений громкости
         self.music_volume = 0.5  # Начальная громкость музыки (от 0.0 до 1.0)
         self.sound_volume = 0.5  # Начальная громкость звуковых эффектов (от 0.0 до 1.0)
+        self.sound_effect = pygame.mixer.Sound('Sounds/jump.wav')
         pygame.mixer.music.set_volume(self.music_volume)  # Установка громкости фоновой музыки
+        self.sound_effect.set_volume(self.sound_volume)
 
     def draw_slider(self, screen, x, y, value, label, font):
         # Отрисовка ползунка для регулировки громкости
@@ -73,5 +76,6 @@ class SettingsMenu:
 
             # Применение громкости музыки
             pygame.mixer.music.set_volume(self.music_volume)
+            self.sound_effect.set_volume(self.sound_volume)
 
             pygame.display.flip()

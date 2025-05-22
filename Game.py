@@ -13,6 +13,7 @@ from Menus.SettingsMenu import SettingsMenu
 from Menus.HelpMenu import HelpMenu
 import pygame
 
+
 class Game:
     def __init__(self):
         pygame.init()

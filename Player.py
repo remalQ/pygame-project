@@ -5,6 +5,7 @@ import pygame
 from Const_Values import *
 from Create_Maps import TILE_SIZE
 
+
 class Player:
     def __init__(self, x, y, coin_sound, jump_sound):
         self.hitbox_width = 28
