@@ -23,12 +23,10 @@ class Game:
         self.door_group = pygame.sprite.Group()
         self.coin_group = pygame.sprite.Group()
 
-        # Инициализация музыки
         self.music_file = "Sounds/back.mp3"
         self.music_playing = False
         self.music_position = 0
 
-        # Инициализация звуковых эффектов
         try:
             self.coin_sound = pygame.mixer.Sound("Sounds/coin.wav")
             self.jump_sound = pygame.mixer.Sound("Sounds/jump.wav")
@@ -37,18 +35,14 @@ class Game:
             self.coin_sound = None
             self.jump_sound = None
 
-        # Инициализация игрока
         self.player = Player(100, HEIGHT - 130, self.coin_sound, self.jump_sound)
 
-        # Загрузка списка уровней
         level_files = [f for f in os.listdir('Maps') if f.endswith('.pkl')]
-
         def extract_level_number(filename):
             try:
                 return int(filename.split('.')[0].replace('level', ''))
             except ValueError:
                 return 0
-
         level_files.sort(key=extract_level_number)
         self.total_levels = len(level_files)
 
@@ -66,7 +60,7 @@ class Game:
         self.settings_menu = SettingsMenu()
         self.help_menu = HelpMenu()
         self.level_menu = LevelMenu(self.total_levels)
-        self.stop_broken = False  # Флаг для отслеживания разрыва цикла в уровне 4
+        self.stop_broken = False
 
     def reset_level(self, level):
         self.player.coins_collected = 0
@@ -74,19 +68,28 @@ class Game:
         self.start_time = pygame.time.get_ticks()
 
         if level == 3:
-            # Для 3-го уровня - спавн в левом верхнем углу и активация падения
             self.player.reset(100, -100)
             self.player.start_falling()
             self.world.allow_drawing = True
             self.world.reset_drawable_platforms()
         else:
-            self.player.reset(100, HEIGHT - 130)
+            # Ищем ближайшую платформу под начальной позицией (x=100)
+            y_position = HEIGHT - 130  # Значение по умолчанию
+            all_platforms = (self.world.platform_group.sprites() +
+                             self.world.breaking_platform_group.sprites() +
+                             self.world.hover_visible_platform_group.sprites() +
+                             self.world.moving_platform_group.sprites() +
+                             self.world.drawable_platform_group.sprites())
+            for platform in all_platforms:
+                if (platform.rect.left <= 100 <= platform.rect.right and
+                        platform.rect.top <= HEIGHT and platform.rect.top >= HEIGHT - 200):
+                    y_position = platform.rect.top - self.player.hitbox_height
+                    break
+            self.player.reset(100, y_position)
             self.world.allow_drawing = False
 
-        # Перезагрузка уровня для обновления мира
         self.load_level(level)
 
-        # Сбрасываем флаг stop_broken для нового уровня, кроме повторного входа на уровень 4
         if level != 4 or not self.stop_broken:
             self.stop_broken = False
 
@@ -94,7 +97,6 @@ class Game:
         self.door_group = Group()
         self.coin_group = Group()
 
-        # Загрузка уровня из файла для всех уровней
         level_path = f'Maps/level{level}.pkl'
         if os.path.exists(level_path):
             try:
@@ -115,30 +117,26 @@ class Game:
             self.world.allow_drawing = False
 
     def start_music(self):
-        """Запускает музыку с сохранённой позиции или с начала."""
         if not self.music_playing:
             try:
                 pygame.mixer.music.load(self.music_file)
-                pygame.mixer.music.play(-1, start=self.music_position / 1000)  # Позиция в секундах
+                pygame.mixer.music.play(-1, start=self.music_position / 1000)
                 self.music_playing = True
             except pygame.error as e:
                 print(f"Ошибка загрузки музыки: {e}")
 
     def stop_music(self):
-        """Останавливает музыку и сохраняет текущую позицию."""
         if self.music_playing:
-            self.music_position = pygame.mixer.music.get_pos()  # Сохраняем текущую позицию
+            self.music_position = pygame.mixer.music.get_pos()
             pygame.mixer.music.stop()
             self.music_playing = False
 
     def reset_music(self):
-        """Сбрасывает музыку для начала с нуля."""
         self.stop_music()
         self.music_position = 0
 
     def show_main_menu(self):
-        self.reset_music()  # Сбрасываем музыку при входе в главное меню
-        # Если игрок выходит в меню с уровня 4, считаем цикл разорванным
+        self.reset_music()
         if self.level == 4:
             self.stop_broken = True
         menu_active = True
@@ -167,7 +165,7 @@ class Game:
                             self.level = selected_level
                             self.reset_level(self.level)
                             self.start_time = pygame.time.get_ticks()
-                            self.start_music()  # Запускаем музыку при входе в уровень
+                            self.start_music()
                             pygame.event.clear()
                             menu_active = False
                             return
@@ -258,7 +256,6 @@ class Game:
                 self.check_and_save_record()
                 self.level_menu.unlock_next_level(self.level)
                 if self.level == 4 and not self.stop_broken:
-                    # Для уровня 4: если условие выполнения уровня не следано перезапускаем
                     self.reset_level(self.level)
                     self.game_over = 0
                     self.start_time = pygame.time.get_ticks()

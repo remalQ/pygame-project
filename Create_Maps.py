@@ -21,7 +21,8 @@ TILE_TYPES = {
     3: {'name': 'coin', 'color': pygame.Color('yellow'), 'solid': False},
     4: {'name': 'breakable', 'color': pygame.Color('darkred'), 'solid': True},
     5: {'name': 'hover', 'color': pygame.Color('lightgreen'), 'solid': True},
-    6: {'name': 'move_on_approach', 'color': pygame.Color('skyblue'), 'solid': True}
+    6: {'name': 'move_on_approach', 'color': pygame.Color('skyblue'), 'solid': True},
+    7: {'name': 'bouncing', 'color': pygame.Color('orange'), 'solid': True}  # Новый тип тайла
 }
 
 # Предустановленные цвета для текста (используются только в редакторе)
@@ -291,7 +292,7 @@ class LevelEditor:
                     self.mode = 'text' if self.mode == 'tiles' else 'tiles'
                     self.selected_text = None
                     self.resizing = False
-                elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6):
+                elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7):
                     if self.mode == 'tiles':
                         self.current_tile = event.key - pygame.K_0
                 elif event.key == pygame.K_c and self.mode == 'text':
@@ -386,7 +387,7 @@ class LevelEditor:
 
         if self.mode == 'tiles':
             tile_name = TILE_TYPES[self.current_tile]['name']
-            tool_text = f"Текущий: {tile_name} (1-6 для смены)"
+            tool_text = f"Текущий: {tile_name} (1-7 для смены)"  # Обновлено для поддержки нового типа
         else:
             tool_text = f"Цвет: {self.current_color_index} (C для смены) | ЛКМ на угол: Масштаб | Del: Удалить"
         tool_rendered = font.render(tool_text, True, pygame.Color('white'))

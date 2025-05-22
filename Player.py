@@ -19,8 +19,10 @@ class Player:
         self.drawing_platform = False
         self.platform_start_pos = None
         self.platform_end_pos = None
-        self.falling_mode = False  # Режим падения для 3-го уровня
-        self.fall_speed = 0  # Скорость падения
+        self.falling_mode = False
+        self.fall_speed = 0
+        self.vel_x = 0
+        self.first_frame = True
 
     def update(self, game_over, world, door_group, coin_group, screen):
         dx = 0
@@ -31,16 +33,19 @@ class Player:
             key = pygame.key.get_pressed()
             mouse_buttons = pygame.mouse.get_pressed()
 
-            # Обработка падения в специальном режиме
-            if self.falling_mode:
-                self.fall_speed += 0.5  # Ускорение падения
-                dy += self.fall_speed
+            # Применяем горизонтальное отталкивание
+            if abs(self.vel_x) > 0:
+                dx += self.vel_x
+                self.vel_x *= 0.9
 
-                # Ограничение максимальной скорости падения
+            # Обработка падения
+            if self.falling_mode:
+                self.fall_speed += 0.5
+                dy += self.fall_speed
                 if self.fall_speed > 15:
                     self.fall_speed = 15
             else:
-                # Обычное управление, если не в режиме падения
+                # Обычное управление
                 if key[pygame.K_a]:
                     dx -= 5
                     self.counter += 1
@@ -49,7 +54,6 @@ class Player:
                         self.counter = 0
                         self.index = (self.index + 1) % len(self.images_left)
                         self.image = self.images_left[self.index]
-
                 if key[pygame.K_d]:
                     dx += 5
                     self.counter += 1
@@ -59,11 +63,10 @@ class Player:
                         self.index = (self.index + 1) % len(self.images_right)
                         self.image = self.images_right[self.index]
 
-            # Обработка рисования платформ (только если мир разрешает)
+            # Обработка рисования платформ
             if hasattr(world, 'allow_drawing') and world.allow_drawing:
                 mouse_pos = pygame.mouse.get_pos()
-
-                if mouse_buttons[0]:  # Левая кнопка мыши нажата
+                if mouse_buttons[0]:
                     if not self.drawing_platform:
                         self.drawing_platform = True
                         self.platform_start_pos = (mouse_pos[0] // TILE_SIZE) * TILE_SIZE
@@ -101,30 +104,60 @@ class Player:
                     self.vel_y = 10
                 dy += self.vel_y
 
+            # Обработка коллизий
             self.in_air = True
-            for tile in (world.platform_group.sprites() +
-                         world.breaking_platform_group.sprites() +
-                         world.hover_visible_platform_group.sprites() +
-                         world.moving_platform_group.sprites() +
-                         world.drawable_platform_group.sprites()):
-                if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
-                    dx = 0
+            all_platforms = (world.platform_group.sprites() +
+                             world.breaking_platform_group.sprites() +
+                             world.hover_visible_platform_group.sprites() +
+                             world.moving_platform_group.sprites() +
+                             world.drawable_platform_group.sprites())
 
+            if self.first_frame:
+                dy = 0
+                self.vel_y = 0
+                self.fall_speed = 0
+                self.first_frame = False
+
+            # Проверяем коллизии
+            for tile in all_platforms:
+                # Горизонтальные коллизии
+                if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
+                    if dx > 0:  # Движение вправо
+                        dx = tile.rect.left - self.rect.right
+                    elif dx < 0:  # Движение влево
+                        dx = tile.rect.right - self.rect.left
+                    self.vel_x = 0  # Сбрасываем горизонтальную скорость
+
+                # Вертикальные коллизии
                 if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
-                    if self.vel_y < 0 or self.fall_speed < 0:
-                        dy = tile.rect.bottom - self.rect.top
-                        self.vel_y = 0
-                        self.fall_speed = 0
-                    elif self.vel_y >= 0 or self.fall_speed > 0:
+                    if self.vel_y >= 0 or self.fall_speed >= 0:
                         dy = tile.rect.top - self.rect.bottom
                         self.vel_y = 0
                         self.fall_speed = 0
                         self.in_air = False
-                        self.falling_mode = False  # Остановка падения при приземлении
-
+                        self.falling_mode = False
                         if tile in world.breaking_platform_group:
                             if hasattr(tile, "start_disappear_timer") and not tile.is_disappeared:
                                 tile.start_disappear_timer()
+                    elif self.vel_y < 0 or self.fall_speed < 0:
+                        dy = tile.rect.bottom - self.rect.top
+                        self.vel_y = 0
+                        self.fall_speed = 0
+
+            # Проверяем, стоит ли персонаж на платформе на первом кадре
+            if self.first_frame:
+                for tile in all_platforms:
+                    if tile.rect.colliderect(self.rect.x, self.rect.y + 1, self.rect.width, self.rect.height):
+                        self.in_air = False
+                        self.falling_mode = False
+                        break
+
+            # Обработка коллизий с подкидывающей платформой
+            for tile in world.bouncing_platform_group.sprites():
+                if tile.rect.colliderect(self.rect.x + dx, self.rect.y + dy, self.rect.width, self.rect.height):
+                    bounce_dx, bounce_dy = tile.apply_bounce(self)
+                    dx += bounce_dx
+                    dy += bounce_dy
 
             collected_coins = pygame.sprite.spritecollide(self, coin_group, True)
             if collected_coins:
@@ -147,23 +180,21 @@ class Player:
             self.rect.x += dx
             self.rect.y += dy
 
-        # Отрисовка персонажа
         screen.blit(self.image, (self.rect.x - self.offset_x, self.rect.bottom - self.image.get_height()))
 
-        # Отрисовка временной платформы при рисовании
         if self.drawing_platform and self.platform_start_pos and self.platform_end_pos:
             start_x = min(self.platform_start_pos, self.platform_end_pos)
             end_x = max(self.platform_start_pos, self.platform_end_pos)
             height = (pygame.mouse.get_pos()[1] // TILE_SIZE) * TILE_SIZE
             pygame.draw.rect(screen, (200, 200, 200, 150),
-                            (start_x, height, end_x - start_x + TILE_SIZE, TILE_SIZE))
+                             (start_x, height, end_x - start_x + TILE_SIZE, TILE_SIZE))
 
         return game_over
 
     def reset(self, x, y):
         self.images_right = []
         self.images_left = []
-        self.index =0
+        self.index = 0
         self.counter = 0
 
         for num in range(1, 5):
@@ -183,6 +214,7 @@ class Player:
         self.rect = pygame.Rect(x, y, self.hitbox_width, self.hitbox_height)
 
         self.vel_y = 0
+        self.vel_x = 0
         self.jumped = False
         self.in_air = True
         self.drawing_platform = False
@@ -190,6 +222,7 @@ class Player:
         self.platform_end_pos = None
         self.falling_mode = False
         self.fall_speed = 0
+        self.first_frame = True
 
     def start_falling(self):
         """Активирует режим падения для 3-го уровня"""

@@ -6,7 +6,7 @@ from Coin import Coin
 from Platforms.Platform import Platform
 from Platforms.HoverVisiblePlatform import HoverVisiblePlatform
 from Platforms.MovingPlatform import MovingPlatform
-
+from Platforms.BouncingPlatform import BouncingPlatform
 
 class World:
     """Класс World создает игровой мир на основе загруженных данных и отрисовывает его."""
@@ -19,6 +19,7 @@ class World:
         self.breaking_platform_group = pygame.sprite.Group()
         self.hover_visible_platform_group = pygame.sprite.Group()
         self.moving_platform_group = pygame.sprite.Group()
+        self.bouncing_platform_group = pygame.sprite.Group()  # Группа для подкидывающих платформ
         self.drawable_platform_group = pygame.sprite.Group()  # Группа для рисованных платформ
         self.texts = []
         self.player = player
@@ -26,7 +27,8 @@ class World:
 
         self.textures = {
             1: pygame.image.load("Assets/platform.png").convert_alpha(),
-            4: None
+            4: None,
+            7: None  # Устанавливаем None для подкидывающей платформы, чтобы использовать серый цвет
         }
 
         if isinstance(data, dict):
@@ -73,6 +75,11 @@ class World:
                     platform = MovingPlatform(x, y, TILE_SIZE, TILE_SIZE, self.player)
                     self.moving_platform_group.add(platform)
 
+                elif tile == 7:
+                    img = self.textures[7]
+                    platform = BouncingPlatform(x, y, TILE_SIZE, TILE_SIZE, img)
+                    self.bouncing_platform_group.add(platform)
+
     def add_drawable_platform(self, x, y):
         """Добавляет рисованную платформу в указанных координатах"""
         img = self.textures[1] if 1 in self.textures else None
@@ -91,6 +98,7 @@ class World:
         self.breaking_platform_group.draw(screen)
         self.hover_visible_platform_group.draw(screen)
         self.moving_platform_group.draw(screen)
+        self.bouncing_platform_group.draw(screen)  # Отрисовка подкидывающих платформ
         self.drawable_platform_group.draw(screen)  # Отрисовка рисованных платформ
 
         for text_data in self.texts:
@@ -102,7 +110,8 @@ class World:
         """Обновляет поведение интерактивных объектов"""
         for platform in (self.breaking_platform_group.sprites() +
                          self.hover_visible_platform_group.sprites() +
-                         self.moving_platform_group.sprites()):
+                         self.moving_platform_group.sprites() +
+                         self.bouncing_platform_group.sprites()):
             platform.update()
 
         for door in self.door_group:
