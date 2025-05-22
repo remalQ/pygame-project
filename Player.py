@@ -1,40 +1,153 @@
+# Player.py
 import pygame
-from Const_Values import *
+from Const_Values import DEFAULT_GRAVITY, HEIGHT
 from Create_Maps import TILE_SIZE
-
 
 class Player:
     def __init__(self, x, y, coin_sound, jump_sound):
+        # Размер хитбокса и сдвиг для отрисовки
         self.hitbox_width = 28
         self.hitbox_height = 90
         self.offset_x = (80 - self.hitbox_width) // 2
+
+        # Звуки и монетки
         self.coin_sound = coin_sound
         self.jump_sound = jump_sound
-        self.reset(x, y)
         self.coins_collected = 0
-        self.coin_image = pygame.image.load("Coins/Gold_1.png")
+        self.coin_image = pygame.image.load("Coins/Gold_1.png").convert_alpha()
         self.coin_image = pygame.transform.scale(self.coin_image, (40, 40))
 
+        # Режим рисования платформ (уровень 3)
+        self.drawing_platform = False
+        self.platform_start_pos = None
+        self.platform_end_pos = None
+
+        # Режим падения
+        self.falling_mode = False
+        self.fall_speed = 0
+
+        # Параметры «отскока»
+        self.vertical_bouncing = False
+        self.horizontal_bouncing = False
+        self.vertical_bounce_speed = 0
+        self.horizontal_bounce_speed = 0
+        self.vertical_bounce_deceleration = 0
+        self.horizontal_bounce_deceleration = 0
+
+        # Параметры зон-эффектов
+        self.jump_multiplier = 1.0
+        self.gravity = DEFAULT_GRAVITY
+        self.can_pass_walls = False
+
+        # Базовые константы
+        self.base_jump_speed = 15       # исходная скорость прыжка
+        self.max_fall_speed = 15        # ограничение скорости падения
+
+        # Горизонтальная скорость от предыдущих отталкиваний
+        self.vel_x = 0
+
+        # Флаг первого кадра (для корректного определения касания земли)
+        self.first_frame = True
+
+        # Загружаем анимации и сбрасываем позицию/состояние
+        self.reset(x, y)
+
+
+    def reset(self, x, y):
+        """Сбрасывает состояние игрока (при старте уровня или респауне)."""
+        # Загрузка спрайтов
+        self.images_right = []
+        self.images_left = []
+        for num in range(1, 5):
+            img = pygame.image.load(f'Assets/frame{num}.png').convert_alpha()
+            img = pygame.transform.scale(img, (80, 90))
+            self.images_right.append(img)
+            self.images_left.append(pygame.transform.flip(img, True, False))
+        self.jump_image_right = pygame.image.load('Assets/frame_jump.png').convert_alpha()
+        self.jump_image_right = pygame.transform.scale(self.jump_image_right, (80, 90))
+        self.jump_image_left = pygame.transform.flip(self.jump_image_right, True, False)
+
+        self.direction = 1
+        self.image = self.images_right[0]
+        self.index = 0
+        self.counter = 0
+
+        # Положение и хитбокс
+        self.rect = pygame.Rect(x, y, self.hitbox_width, self.hitbox_height)
+
+        # Вертикальные параметры
+        self.vel_y = 0
+        self.jumped = False
+        self.in_air = True
+
+        # Сбрасываем рисование платформ
+        self.drawing_platform = False
+        self.platform_start_pos = None
+        self.platform_end_pos = None
+
+        # Сбрасываем режим падения
+        self.falling_mode = False
+        self.fall_speed = 0
+
+        # Сбрасываем флаг первого кадра
+        self.first_frame = True
+
+        # Сбрасываем зоны-эффекты
+        self.jump_multiplier = 1.0
+        self.gravity = DEFAULT_GRAVITY
+        self.can_pass_walls = False
+
+        # Сбрасываем отскок
+        self.vertical_bouncing = False
+        self.horizontal_bouncing = False
+        self.vertical_bounce_speed = 0
+        self.horizontal_bounce_speed = 0
+        self.vertical_bounce_deceleration = 0
+        self.horizontal_bounce_deceleration = 0
+
+
+    def start_vertical_bounce(self, initial_speed, deceleration):
+        """Инициирует равнозамедленный отскок по оси Y."""
+        self.vertical_bounce_speed = initial_speed
+        self.vertical_bounce_deceleration = deceleration
+        self.vertical_bouncing = True
+
+
+    def start_horizontal_bounce(self, initial_speed, deceleration):
+        """Инициирует равнозамедленный отскок по оси X."""
+        self.horizontal_bounce_speed = initial_speed
+        self.horizontal_bounce_deceleration = deceleration
+        self.horizontal_bouncing = True
+
+
+    def start_falling(self):
+        """Включает режим свободного падения (уровень 3)."""
+        self.falling_mode = True
+        self.fall_speed = 3
+
+
     def update(self, game_over, world, door_group, coin_group, screen):
+        """
+        Основной апдейт игрока. Возвращает новое значение game_over.
+        world — нужен для доступа к bouncing_platform_group и zones,
+        door_group и coin_group переданы отдельно.
+        """
         dx = 0
         dy = 0
         walk_cooldown = 3
 
+        # Хелпер: True, если плитка лежит внутри зоны ghost_mode
+        def tile_in_ghost_zone(tile):
+            for z in world.zones:
+                if z['effect'] == 'ghost_mode':
+                    if pygame.Rect(z['x'], z['y'], z['w'], z['h']).colliderect(tile.rect):
+                        return True
+            return False
+
         if game_over == 0:
             key = pygame.key.get_pressed()
-            mouse_buttons = pygame.mouse.get_pressed()
 
-            # Горизонтальный отскок
-            if self.horizontal_bouncing:
-                dx += self.horizontal_bounce_speed
-                if self.horizontal_bounce_speed > 0:
-                    self.horizontal_bounce_speed = max(0, self.horizontal_bounce_speed - self.horizontal_bounce_deceleration)
-                else:
-                    self.horizontal_bounce_speed = min(0, self.horizontal_bounce_speed + self.horizontal_bounce_deceleration)
-                if self.horizontal_bounce_speed == 0:
-                    self.horizontal_bouncing = False
-
-            # Вертикальный отскок
+            # === 1) Обработка равнозамедленного отскока ===
             if self.vertical_bouncing:
                 dy += self.vertical_bounce_speed
                 if self.vertical_bounce_speed > 0:
@@ -44,7 +157,28 @@ class Player:
                 if self.vertical_bounce_speed == 0:
                     self.vertical_bouncing = False
 
-            if not self.horizontal_bouncing:
+            if self.horizontal_bouncing:
+                dx += self.horizontal_bounce_speed
+                if self.horizontal_bounce_speed > 0:
+                    self.horizontal_bounce_speed = max(0, self.horizontal_bounce_speed - self.horizontal_bounce_deceleration)
+                else:
+                    self.horizontal_bounce_speed = min(0, self.horizontal_bounce_speed + self.horizontal_bounce_deceleration)
+                if self.horizontal_bounce_speed == 0:
+                    self.horizontal_bouncing = False
+
+            # === 2) Горизонтальное скольжение от предыдущих отталкиваний ===
+            if abs(self.vel_x) > 0:
+                dx += self.vel_x
+                self.vel_x *= 0.9
+
+            # === 3) Управление и гравитация ===
+            if self.falling_mode:
+                self.fall_speed += 0.5
+                dy += self.fall_speed
+                if self.fall_speed > self.max_fall_speed:
+                    self.fall_speed = self.max_fall_speed
+            else:
+                # ходьба
                 if key[pygame.K_a]:
                     dx -= 5
                     self.counter += 1
@@ -62,67 +196,72 @@ class Player:
                         self.index = (self.index + 1) % len(self.images_right)
                         self.image = self.images_right[self.index]
 
-            if hasattr(world, 'allow_drawing') and world.allow_drawing:
-                mouse_pos = pygame.mouse.get_pos()
-                if mouse_buttons[0]:
-                    if not self.drawing_platform:
-                        self.drawing_platform = True
-                        self.platform_start_pos = (mouse_pos[0] // TILE_SIZE) * TILE_SIZE
-                    self.platform_end_pos = (mouse_pos[0] // TILE_SIZE) * TILE_SIZE
-                else:
-                    if self.drawing_platform:
-                        self.drawing_platform = False
-                        if self.platform_start_pos and self.platform_end_pos:
-                            start_x = min(self.platform_start_pos, self.platform_end_pos)
-                            end_x = max(self.platform_start_pos, self.platform_end_pos)
-                            for x in range(start_x, end_x + TILE_SIZE, TILE_SIZE):
-                                world.add_drawable_platform(x, (mouse_pos[1] // TILE_SIZE) * TILE_SIZE)
-                        self.platform_start_pos = None
-                        self.platform_end_pos = None
+                # прыжок с учётом множителя зоны
+                if key[pygame.K_SPACE] and not self.jumped and not self.in_air:
+                    self.vel_y = -self.base_jump_speed * self.jump_multiplier
+                    self.jumped = True
+                    self.jump_sound.play()
+                    self.image = (self.jump_image_right if self.direction == 1
+                                  else self.jump_image_left)
+                if not key[pygame.K_SPACE]:
+                    self.jumped = False
 
-            if key[pygame.K_SPACE] and not self.jumped and not self.in_air and not self.falling_mode:
-                self.vel_y = -15
-                self.jumped = True
-                self.jump_sound.play()
-                self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
+                # смена спрайта
+                if self.in_air:
+                    self.image = (self.jump_image_right if self.direction == 1
+                                  else self.jump_image_left)
+                elif not key[pygame.K_a] and not key[pygame.K_d]:
+                    self.counter = 0
+                    self.index = 0
+                    self.image = (self.images_right[self.index]
+                                  if self.direction == 1
+                                  else self.images_left[self.index])
 
-            if not key[pygame.K_SPACE]:
-                self.jumped = False
-
-            if self.falling_mode:
-                self.fall_speed += 0.5
-                dy += self.fall_speed
-                if self.fall_speed > 15:
-                    self.fall_speed = 15
-            elif not self.vertical_bouncing:
-                self.vel_y += 1
-                if self.vel_y > 10:
-                    self.vel_y = 10
+                # гравитация
+                self.vel_y += self.gravity
+                if self.vel_y > self.max_fall_speed:
+                    self.vel_y = self.max_fall_speed
                 dy += self.vel_y
 
+            # === 4) Коллизии со спрайтами ===
             self.in_air = True
+            all_platforms = (
+                world.platform_group.sprites() +
+                world.breaking_platform_group.sprites() +
+                world.hover_visible_platform_group.sprites() +
+                world.moving_platform_group.sprites() +
+                world.drawable_platform_group.sprites()
+            )
 
-            all_platforms = (world.platform_group.sprites() +
-                             world.breaking_platform_group.sprites() +
-                             world.hover_visible_platform_group.sprites() +
-                             world.moving_platform_group.sprites() +
-                             world.drawable_platform_group.sprites())
-
+            # на первом кадре — сброс
             if self.first_frame:
                 dy = 0
                 self.vel_y = 0
                 self.fall_speed = 0
                 self.first_frame = False
 
+            # горизонтальные коллизии
             for tile in all_platforms:
-                if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
+                if self.can_pass_walls and tile_in_ghost_zone(tile):
+                    continue
+                if tile.rect.colliderect(self.rect.x + dx,
+                                         self.rect.y,
+                                         self.rect.width,
+                                         self.rect.height):
                     if dx > 0:
                         dx = tile.rect.left - self.rect.right
                     elif dx < 0:
                         dx = tile.rect.right - self.rect.left
                     self.vel_x = 0
 
-                if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
+            # вертикальные коллизии
+            for tile in all_platforms:
+                if self.can_pass_walls and tile_in_ghost_zone(tile):
+                    continue
+                if tile.rect.colliderect(self.rect.x,
+                                         self.rect.y + dy,
+                                         self.rect.width,
+                                         self.rect.height):
                     if self.vel_y >= 0 or self.fall_speed >= 0:
                         dy = tile.rect.top - self.rect.bottom
                         self.vel_y = 0
@@ -132,29 +271,30 @@ class Player:
                         if tile in world.breaking_platform_group:
                             if hasattr(tile, "start_disappear_timer") and not tile.is_disappeared:
                                 tile.start_disappear_timer()
-                    elif self.vel_y < 0 or self.fall_speed < 0:
+                    else:
                         dy = tile.rect.bottom - self.rect.top
                         self.vel_y = 0
                         self.fall_speed = 0
 
-            if self.first_frame:
-                for tile in all_platforms:
-                    if tile.rect.colliderect(self.rect.x, self.rect.y + 1, self.rect.width, self.rect.height):
-                        self.in_air = False
-                        self.falling_mode = False
-                        break
-
+            # столкновение с bouncing-платформами
             for tile in world.bouncing_platform_group.sprites():
-                if tile.rect.colliderect(self.rect.x + dx, self.rect.y + dy, self.rect.width, self.rect.height):
-                    bounce_dx, bounce_dy = tile.apply_bounce(self)
-                    dx += bounce_dx
-                    dy += bounce_dy
+                if self.can_pass_walls and tile_in_ghost_zone(tile):
+                    continue
+                if tile.rect.colliderect(self.rect.x + dx,
+                                         self.rect.y + dy,
+                                         self.rect.width,
+                                         self.rect.height):
+                    bx, by = tile.apply_bounce(self)
+                    dx += bx
+                    dy += by
 
-            collected_coins = pygame.sprite.spritecollide(self, coin_group, True)
-            if collected_coins:
+            # === 5) Подбор монет ===
+            collected = pygame.sprite.spritecollide(self, coin_group, True)
+            if collected:
                 self.coin_sound.play()
-            self.coins_collected += len(collected_coins)
+            self.coins_collected += len(collected)
 
+            # === 6) Двери и выход ===
             for door in door_group:
                 if self.rect.colliderect(door.rect):
                     if door.image == door.opened:
@@ -165,73 +305,26 @@ class Player:
                         elif self.rect.left < door.rect.right and self.direction == -1:
                             dx = door.rect.right - self.rect.left
 
+            # === 7) Падение за экран ===
             if self.rect.y > HEIGHT:
                 game_over = -1
 
+            # применяем смещения
             self.rect.x += dx
             self.rect.y += dy
 
-        screen.blit(self.image, (self.rect.x - self.offset_x, self.rect.bottom - self.image.get_height()))
+        # отрисовка игрока
+        screen.blit(self.image,
+                    (self.rect.x - self.offset_x,
+                     self.rect.bottom - self.image.get_height()))
 
-        if self.drawing_platform and self.platform_start_pos and self.platform_end_pos:
+        # превью для рисования платформ
+        if self.drawing_platform and self.platform_start_pos is not None and self.platform_end_pos is not None:
             start_x = min(self.platform_start_pos, self.platform_end_pos)
             end_x = max(self.platform_start_pos, self.platform_end_pos)
             height = (pygame.mouse.get_pos()[1] // TILE_SIZE) * TILE_SIZE
             pygame.draw.rect(screen, (200, 200, 200, 150),
-                             (start_x, height, end_x - start_x + TILE_SIZE, TILE_SIZE))
+                             (start_x, height,
+                              end_x - start_x + TILE_SIZE, TILE_SIZE))
 
         return game_over
-
-    def reset(self, x, y):
-        self.images_right = []
-        self.images_left = []
-        self.index = 0
-        self.counter = 0
-
-        for num in range(1, 5):
-            img_right = pygame.image.load(f'Assets/frame{num}.png').convert_alpha()
-            img_right = pygame.transform.scale(img_right, (80, 90))
-            img_left = pygame.transform.flip(img_right, True, False)
-            self.images_right.append(img_right)
-            self.images_left.append(img_left)
-
-        self.jump_image_right = pygame.image.load('Assets/frame_jump.png').convert_alpha()
-        self.jump_image_right = pygame.transform.scale(self.jump_image_right, (80, 90))
-        self.jump_image_left = pygame.transform.flip(self.jump_image_right, True, False)
-
-        self.direction = 1
-        self.image = self.images_right[self.index]
-
-        self.rect = pygame.Rect(x, y, self.hitbox_width, self.hitbox_height)
-
-        self.vel_y = 0
-        self.vel_x = 0
-        self.jumped = False
-        self.in_air = True
-        self.drawing_platform = False
-        self.platform_start_pos = None
-        self.platform_end_pos = None
-        self.falling_mode = False
-        self.fall_speed = 0
-        self.first_frame = True
-
-        self.vertical_bouncing = False
-        self.horizontal_bouncing = False
-        self.vertical_bounce_speed = 0
-        self.horizontal_bounce_speed = 0
-        self.vertical_bounce_deceleration = 0
-        self.horizontal_bounce_deceleration = 0
-
-    def start_falling(self):
-        self.falling_mode = True
-        self.fall_speed = 3
-
-    def start_vertical_bounce(self, initial_speed, deceleration):
-        self.vertical_bounce_speed = initial_speed
-        self.vertical_bounce_deceleration = deceleration
-        self.vertical_bouncing = True
-
-    def start_horizontal_bounce(self, initial_speed, deceleration):
-        self.horizontal_bounce_speed = initial_speed
-        self.horizontal_bounce_deceleration = deceleration
-        self.horizontal_bouncing = True
