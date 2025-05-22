@@ -1,6 +1,3 @@
-"""@package Player
-Класс игрока с модификациями для 3-го уровня (режим падения)
-"""
 import pygame
 from Const_Values import *
 from Create_Maps import TILE_SIZE
@@ -17,13 +14,6 @@ class Player:
         self.coins_collected = 0
         self.coin_image = pygame.image.load("Coins/Gold_1.png")
         self.coin_image = pygame.transform.scale(self.coin_image, (40, 40))
-        self.drawing_platform = False
-        self.platform_start_pos = None
-        self.platform_end_pos = None
-        self.falling_mode = False
-        self.fall_speed = 0
-        self.vel_x = 0
-        self.first_frame = True
 
     def update(self, game_over, world, door_group, coin_group, screen):
         dx = 0
@@ -34,19 +24,27 @@ class Player:
             key = pygame.key.get_pressed()
             mouse_buttons = pygame.mouse.get_pressed()
 
-            # Применяем горизонтальное отталкивание
-            if abs(self.vel_x) > 0:
-                dx += self.vel_x
-                self.vel_x *= 0.9
+            # Горизонтальный отскок
+            if self.horizontal_bouncing:
+                dx += self.horizontal_bounce_speed
+                if self.horizontal_bounce_speed > 0:
+                    self.horizontal_bounce_speed = max(0, self.horizontal_bounce_speed - self.horizontal_bounce_deceleration)
+                else:
+                    self.horizontal_bounce_speed = min(0, self.horizontal_bounce_speed + self.horizontal_bounce_deceleration)
+                if self.horizontal_bounce_speed == 0:
+                    self.horizontal_bouncing = False
 
-            # Обработка падения
-            if self.falling_mode:
-                self.fall_speed += 0.5
-                dy += self.fall_speed
-                if self.fall_speed > 15:
-                    self.fall_speed = 15
-            else:
-                # Обычное управление
+            # Вертикальный отскок
+            if self.vertical_bouncing:
+                dy += self.vertical_bounce_speed
+                if self.vertical_bounce_speed > 0:
+                    self.vertical_bounce_speed = max(0, self.vertical_bounce_speed - self.vertical_bounce_deceleration)
+                else:
+                    self.vertical_bounce_speed = min(0, self.vertical_bounce_speed + self.vertical_bounce_deceleration)
+                if self.vertical_bounce_speed == 0:
+                    self.vertical_bouncing = False
+
+            if not self.horizontal_bouncing:
                 if key[pygame.K_a]:
                     dx -= 5
                     self.counter += 1
@@ -64,7 +62,6 @@ class Player:
                         self.index = (self.index + 1) % len(self.images_right)
                         self.image = self.images_right[self.index]
 
-            # Обработка рисования платформ
             if hasattr(world, 'allow_drawing') and world.allow_drawing:
                 mouse_pos = pygame.mouse.get_pos()
                 if mouse_buttons[0]:
@@ -92,21 +89,19 @@ class Player:
             if not key[pygame.K_SPACE]:
                 self.jumped = False
 
-            if not self.falling_mode:
-                if self.in_air:
-                    self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
-                elif not key[pygame.K_a] and not key[pygame.K_d]:
-                    self.counter = 0
-                    self.index = 0
-                    self.image = self.images_right[self.index] if self.direction == 1 else self.images_left[self.index]
-
+            if self.falling_mode:
+                self.fall_speed += 0.5
+                dy += self.fall_speed
+                if self.fall_speed > 15:
+                    self.fall_speed = 15
+            elif not self.vertical_bouncing:
                 self.vel_y += 1
                 if self.vel_y > 10:
                     self.vel_y = 10
                 dy += self.vel_y
 
-            # Обработка коллизий
             self.in_air = True
+
             all_platforms = (world.platform_group.sprites() +
                              world.breaking_platform_group.sprites() +
                              world.hover_visible_platform_group.sprites() +
@@ -119,17 +114,14 @@ class Player:
                 self.fall_speed = 0
                 self.first_frame = False
 
-            # Проверяем коллизии
             for tile in all_platforms:
-                # Горизонтальные коллизии
                 if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.rect.width, self.rect.height):
-                    if dx > 0:  # Движение вправо
+                    if dx > 0:
                         dx = tile.rect.left - self.rect.right
-                    elif dx < 0:  # Движение влево
+                    elif dx < 0:
                         dx = tile.rect.right - self.rect.left
-                    self.vel_x = 0  # Сбрасываем горизонтальную скорость
+                    self.vel_x = 0
 
-                # Вертикальные коллизии
                 if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.rect.width, self.rect.height):
                     if self.vel_y >= 0 or self.fall_speed >= 0:
                         dy = tile.rect.top - self.rect.bottom
@@ -145,7 +137,6 @@ class Player:
                         self.vel_y = 0
                         self.fall_speed = 0
 
-            # Проверяем, стоит ли персонаж на платформе на первом кадре
             if self.first_frame:
                 for tile in all_platforms:
                     if tile.rect.colliderect(self.rect.x, self.rect.y + 1, self.rect.width, self.rect.height):
@@ -153,7 +144,6 @@ class Player:
                         self.falling_mode = False
                         break
 
-            # Обработка коллизий с подкидывающей платформой
             for tile in world.bouncing_platform_group.sprites():
                 if tile.rect.colliderect(self.rect.x + dx, self.rect.y + dy, self.rect.width, self.rect.height):
                     bounce_dx, bounce_dy = tile.apply_bounce(self)
@@ -225,7 +215,23 @@ class Player:
         self.fall_speed = 0
         self.first_frame = True
 
+        self.vertical_bouncing = False
+        self.horizontal_bouncing = False
+        self.vertical_bounce_speed = 0
+        self.horizontal_bounce_speed = 0
+        self.vertical_bounce_deceleration = 0
+        self.horizontal_bounce_deceleration = 0
+
     def start_falling(self):
-        """Активирует режим падения для 3-го уровня"""
         self.falling_mode = True
-        self.fall_speed = 3  # Начальная скорость падения
+        self.fall_speed = 3
+
+    def start_vertical_bounce(self, initial_speed, deceleration):
+        self.vertical_bounce_speed = initial_speed
+        self.vertical_bounce_deceleration = deceleration
+        self.vertical_bouncing = True
+
+    def start_horizontal_bounce(self, initial_speed, deceleration):
+        self.horizontal_bounce_speed = initial_speed
+        self.horizontal_bounce_deceleration = deceleration
+        self.horizontal_bouncing = True
