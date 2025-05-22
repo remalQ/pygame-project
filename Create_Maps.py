@@ -262,7 +262,7 @@ class LevelEditor:
         box = TextInputBox(SCREEN_WIDTH//2-150, SCREEN_HEIGHT//2-25, 300, 50)
         font = pygame.font.SysFont('Arial', 24)
         prompt = (
-            "1: double_jump (jump x3)\n"
+            "1: double_jump (jump x1.5)\n"
             "2: low_gravity (gravity x0.3)\n"
             "3: ghost_mode\n"
             "Введите 1–3 и нажмите Enter:"
@@ -289,7 +289,7 @@ class LevelEditor:
             self.clock.tick(FPS)
 
         if choice == 1:
-            return 'double_jump', 3.0
+            return 'double_jump', 1.5
         elif choice == 2:
             return 'low_gravity', 0.3
         else:
