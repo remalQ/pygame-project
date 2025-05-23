@@ -1,4 +1,3 @@
-# SettingsMenu.py
 import pygame
 import sys
 from Button import Button
