@@ -26,14 +26,15 @@ class Game:
         self.music_file = "Sounds/back.mp3"
         self.music_playing = False
         self.music_position = 0
+        self.sound_volume = 0.5
 
         try:
             self.coin_sound = pygame.mixer.Sound("Sounds/coin.wav")
             self.jump_sound = pygame.mixer.Sound("Sounds/jump.wav")
+            self.coin_sound.set_volume(self.sound_volume)
+            self.jump_sound.set_volume(self.sound_volume)
         except pygame.error as e:
             print(f"Ошибка загрузки звуковых эффектов: {e}")
-            self.coin_sound = None
-            self.jump_sound = None
 
         self.player = Player(100, HEIGHT - 130, self.coin_sound, self.jump_sound)
 
@@ -57,10 +58,17 @@ class Game:
         self.records_db = RecordsDB()
         self.start_time = 0
         self.current_time = 0
-        self.settings_menu = SettingsMenu()
+        self.settings_menu = SettingsMenu(self)
         self.help_menu = HelpMenu()
         self.level_menu = LevelMenu(self.total_levels)
         self.stop_broken = False
+
+    def set_sound_volume(self, volume):
+        self.sound_volume = volume
+        if self.coin_sound:
+            self.coin_sound.set_volume(self.sound_volume)
+        if self.jump_sound:
+            self.jump_sound.set_volume(self.sound_volume)
 
     def reset_level(self, level):
         self.player.coins_collected = 0
@@ -73,8 +81,7 @@ class Game:
             self.world.allow_drawing = True
             self.world.reset_drawable_platforms()
         else:
-            # Ищем ближайшую платформу под начальной позицией (x=100)
-            y_position = HEIGHT - 130  # Значение по умолчанию
+            y_position = HEIGHT - 130
             all_platforms = (self.world.platform_group.sprites() +
                              self.world.breaking_platform_group.sprites() +
                              self.world.hover_visible_platform_group.sprites() +
