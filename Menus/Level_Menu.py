@@ -12,14 +12,14 @@ class LevelMenu:
         self.buttons = []
         self.total_levels = total_levels
         self.preview_cache = {}
-        self.unlocked_levels = 1  # Сбрасываем прогресс до первого уровня при создании объекта
+        self.unlocked_levels = 1
 
     def is_level_unlocked(self, level):
         return level <= self.unlocked_levels
 
     def generate_real_preview(self, world_data, scale=0.4):
-        level_width = len(world_data[0]) * TILE_SIZE
-        level_height = len(world_data) * TILE_SIZE
+        level_width = len(world_data['grid'][0]) * TILE_SIZE
+        level_height = len(world_data['grid']) * TILE_SIZE
         preview_surface = pygame.Surface((level_width, level_height))
 
         dummy_player = pygame.sprite.Sprite()
@@ -35,7 +35,7 @@ class LevelMenu:
     def show(self, screen):
         menu_active = True
         self.buttons = []
-        self.preview_cache = {}  # Очищаем кэш при каждом открытии меню
+        self.preview_cache = {}
 
         for i in range(1, self.total_levels + 1):
             if i <= self.unlocked_levels:
@@ -45,6 +45,7 @@ class LevelMenu:
             self.buttons.append(button)
 
         hovered_button = None
+        font = pygame.font.Font("Fonts/Monocraft.otf", 30)
 
         while menu_active:
             screen.fill(BLACK)
@@ -63,12 +64,16 @@ class LevelMenu:
                         try:
                             with open(level_path, "rb") as f:
                                 data = pickle.load(f)
-                                if isinstance(data, list):
+                                if isinstance(data, dict):
                                     preview = self.generate_real_preview(data)
                                     self.preview_cache[hovered_button] = preview
+                                else:
+                                    self.preview_cache[hovered_button] = None
                         except Exception as e:
                             print(f"Ошибка при загрузке уровня {hovered_button}: {e}")
                             self.preview_cache[hovered_button] = None
+                    else:
+                        self.preview_cache[hovered_button] = None
 
                 preview = self.preview_cache.get(hovered_button)
                 if preview:
@@ -77,6 +82,16 @@ class LevelMenu:
                     screen.blit(preview, (preview_x, preview_y))
 
                     preview_rect = pygame.Rect(preview_x, preview_y, preview.get_width(), preview.get_height())
+                    pygame.draw.rect(screen, WHITE, preview_rect, 3)
+                else:
+                    preview_x = WIDTH // 2 + 100
+                    preview_y = HEIGHT // 4
+                    preview_surface = pygame.Surface((250, 200))
+                    preview_surface.fill((100, 100, 100))
+                    text = font.render("Нет превью", True, WHITE)
+                    preview_surface.blit(text, (125 - text.get_width() // 2, 100 - text.get_height() // 2))
+                    screen.blit(preview_surface, (preview_x, preview_y))
+                    preview_rect = pygame.Rect(preview_x, preview_y, 250, 200)
                     pygame.draw.rect(screen, WHITE, preview_rect, 3)
 
             for event in pygame.event.get():
