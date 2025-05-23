@@ -133,21 +133,15 @@ class World:
             d.update(self.player, self.coin_group)
 
         # сбрасываем базовые параметры игрока
-        self.player.jump_multiplier = 1.0
-        self.player.gravity        = DEFAULT_GRAVITY
+        self.player.gravity = DEFAULT_GRAVITY
         self.player.can_pass_walls = False
 
-        # проверяем, в каких зонах находится центр игрока
         px, py = self.player.rect.center
         for z in self.zones:
             rect = pygame.Rect(z['x'], z['y'], z['w'], z['h'])
             if rect.collidepoint(px, py):
-                eff = z['effect']
-                val = z.get('value', 1.0)
-                if eff == 'double_jump':
-                    self.player.jump_multiplier = val
-                elif eff == 'low_gravity':
-                    self.player.gravity = DEFAULT_GRAVITY * val
-                elif eff == 'ghost_mode':
+                if z['effect'] == 'low_gravity':
+                    self.player.gravity = DEFAULT_GRAVITY * z['value']
+                elif z['effect'] == 'ghost_mode':
                     self.player.can_pass_walls = True
                 # можно добавить свои эффекты

@@ -254,23 +254,20 @@ class LevelEditor:
     def ask_zone_effect(self):
         """
         Предлагает выбрать тип зоны цифрой:
-          1 — double_jump (множитель прыжка = 3)
-          2 — low_gravity (множитель гравитации = 0.3)
-          3 — ghost_mode (призрачный режим)
+          1 — low_gravity (множитель гравитации = 0.3)
+          2 — ghost_mode (призрачный режим)
         Возвращает кортеж (effect, value).
         """
         box = TextInputBox(SCREEN_WIDTH//2-150, SCREEN_HEIGHT//2-25, 300, 50)
         font = pygame.font.SysFont('Arial', 24)
         prompt = (
-            "1: double_jump (jump x1.5)\n"
-            "2: low_gravity (gravity x0.3)\n"
-            "3: ghost_mode\n"
-            "Введите 1–3 и нажмите Enter:"
+            "1: low_gravity (gravity x0.3)\n"
+            "2: ghost_mode\n"
+            "Введите 1–2 и нажмите Enter:"
         )
         choice = None
         while choice is None:
             self.screen.fill(pygame.Color('black'))
-            # рисуем многострочный prompt
             for i, line in enumerate(prompt.split("\n")):
                 self.screen.blit(font.render(line, True, pygame.Color('white')),
                                  (50, SCREEN_HEIGHT//2 - 80 + i*30))
@@ -280,7 +277,7 @@ class LevelEditor:
                 if box.handle_event(ev):
                     try:
                         n = int(box.text.strip())
-                        if n in (1,2,3):
+                        if n in (1,2):
                             choice = n
                     except:
                         pass
@@ -289,8 +286,6 @@ class LevelEditor:
             self.clock.tick(FPS)
 
         if choice == 1:
-            return 'double_jump', 1.5
-        elif choice == 2:
             return 'low_gravity', 0.3
         else:
             return 'ghost_mode', 1.0
