@@ -189,14 +189,14 @@ class Player:
 
             # 6) Коллизии
             all_tiles = (
-                    world.platform_group.sprites() +
-                    world.breaking_platform_group.sprites() +
-                    world.hover_visible_platform_group.sprites() +
-                    world.moving_platform_group.sprites() +
-                    world.drawable_platform_group.sprites()
+                world.platform_group.sprites() +
+                world.breaking_platform_group.sprites() +
+                world.hover_visible_platform_group.sprites() +
+                world.moving_platform_group.sprites() +
+                world.drawable_platform_group.sprites()
             )
 
-            # первый кадр — обнуляем dy
+            # Первый кадр — обнуляем dy
             if self.first_frame:
                 dy = 0
                 self.vel_y = 0
@@ -218,9 +218,6 @@ class Player:
                     self.vel_x = 0
                     break
 
-            # Применяем горизонтальное смещение
-            self.rect.x += dx
-
             # --- Вертикальная коллизия ---
             rect_v = self.rect.copy()
             rect_v.y += dy
@@ -233,13 +230,25 @@ class Player:
                         dy = tile.rect.top - self.rect.bottom
                         self.vel_y = 0
                         self.fall_speed = 0
+                        self.in_air = False  # Игрок на платформе
                     else:
                         dy = tile.rect.bottom - self.rect.top
                         self.vel_y = 0
                         self.fall_speed = 0
                     break
 
-            # Применяем вертикальное смещение
+            # --- Коллизии с BouncingPlatform ---
+            for tile in world.bouncing_platform_group.sprites():
+                if self.can_pass_walls and tile_in_ghost_zone(tile):
+                    continue
+                # Проверяем коллизию с учётом предполагаемого движения
+                if tile.rect.colliderect(self.rect.x + dx, self.rect.y + dy, self.rect.width, self.rect.height):
+                    bx, by = tile.apply_bounce(self)
+                    dx += bx
+                    dy += by
+
+            # Применяем движение
+            self.rect.x += dx
             self.rect.y += dy
 
             # 7) Надёжная проверка – стоим ли мы на земле?

@@ -108,11 +108,14 @@ class World:
         self.bouncing_platform_group.draw(screen)
         self.drawable_platform_group.draw(screen)
 
-        # рисуем тексты
+        # рисуем тексты (чёрный цвет в игре)
         for t in self.texts:
-            font = pygame.font.Font("Fonts/Monocraft.otf", t['font_size'])
-            surf = font.render(t['text'], True, t.get('color',(0,0,0)))
-            screen.blit(surf, (t['x'], t['y']))
+            try:
+                font = pygame.font.Font("Fonts/Monocraft.otf", t['font_size'])
+                surf = font.render(t['text'], True, (0, 0, 0))
+                screen.blit(surf, (t['x'], t['y']))
+            except Exception as e:
+                print(f"Ошибка отрисовки текста {t}: {e}")
 
         # рисуем зоны (полупрозрачно оранжевые)
         for z in self.zones:
