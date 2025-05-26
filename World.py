@@ -9,7 +9,7 @@ from Platforms.BouncingPlatform import BouncingPlatform
 from Door import Door
 from Coin import Coin
 from Clone import Clone
-
+#для коммита
 class World:
     """Создает игровой мир из данных и применяет зоны с эффектами."""
     def __init__(self, data, door_group, coin_group, player):

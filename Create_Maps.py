@@ -5,7 +5,7 @@ import sys
 import pickle
 import pygame
 from TextBox import TextInputBox  # ваш класс для текстового ввода
-
+#для коммита
 # Инициализация Pygame
 pygame.init()
 
