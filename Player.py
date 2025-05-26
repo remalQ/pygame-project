@@ -200,6 +200,9 @@ class Player:
                 if self.can_pass_walls and tile_in_ghost_zone(tile):
                     continue
                 if rect_v.colliderect(tile.rect):
+                    # ЛОМАЮЩАЯСЯ ПЛАТФОРМА — ЗАПУСКАЕМ ТАЙМЕР
+                    if hasattr(tile, 'start_disappear_timer'):
+                        tile.start_disappear_timer()
                     if dy > 0:
                         dy = tile.rect.top - self.rect.bottom
                         self.vel_y = 0
