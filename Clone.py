@@ -7,28 +7,44 @@ class Clone(pygame.sprite.Sprite):
         super().__init__()
         self.player = player
         self.world = world
-        self.hitbox_width = player.hitbox_width
-        self.hitbox_height = player.hitbox_height
-        self.offset_x = player.offset_x
+
+        self.hitbox_width = player.hitbox_width  # 28
+        self.hitbox_height = player.hitbox_height  # 90
+        self.offset_x = player.offset_x  # 26
+
         self.images_right = [img.copy() for img in player.images_right]
         self.images_left = [img.copy() for img in player.images_left]
         self.jump_image_right = player.jump_image_right.copy()
         self.jump_image_left = player.jump_image_left.copy()
+        for img in self.images_right + self.images_left + [self.jump_image_right, self.jump_image_left]:
+            img.set_alpha(128)
+
         self.direction = 1
         self.image = self.images_right[0]
         self.index = 0
         self.counter = 0
-        clone_offset = self.hitbox_width + 40
-        self.rect = pygame.Rect(player.rect.x - clone_offset, player.rect.y, self.hitbox_width, self.hitbox_height)
 
-        #self.rect = pygame.Rect(player.rect.x - 20, player.rect.y, self.hitbox_width, self.hitbox_height)
-        self.vel_y = 0
+        # СПРАЙТ клона рисуется как у игрока: (rect.x - offset_x, rect.y)
+        # Поэтому rect должен быть без offset_x
+        spawn_gap = 8  # Измени на нужное число для контроля расстояния (0 — вплотную, 2-4 — чуть левее)
+        clone_hitbox_x = player.rect.x - self.hitbox_width - spawn_gap
+        clone_hitbox_y = player.rect.y
+
+        self.rect = pygame.Rect(
+            clone_hitbox_x,
+            clone_hitbox_y,
+            self.hitbox_width,
+            self.hitbox_height
+        )
+
+        # Остальное как у тебя...
         self.vel_x = 0
+        self.vel_y = 0
         self.base_jump_speed = player.base_jump_speed
         self.max_fall_speed = player.max_fall_speed
         self.jumped = False
         self.in_air = True
-        self.gravity = DEFAULT_GRAVITY
+        self.gravity = player.gravity if hasattr(player, 'gravity') else 1
         self.falling_mode = False
         self.fall_speed = 0
         self.vertical_bouncing = False
@@ -38,10 +54,6 @@ class Clone(pygame.sprite.Sprite):
         self.horizontal_bounce_speed = 0
         self.horizontal_bounce_deceleration = 0
         self.can_pass_walls = False
-        # Прозрачность для клона
-        for img in self.images_right + self.images_left + [self.jump_image_right, self.jump_image_left]:
-            img.set_alpha(128)
-        self.image.set_alpha(128)
 
     def start_vertical_bounce(self, initial_speed, deceleration):
         self.vertical_bounce_speed = initial_speed

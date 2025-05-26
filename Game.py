@@ -107,7 +107,7 @@ class Game:
             self.world.clone = None
         self.world.clone_group.empty()
 
-        # 4. Создаём нового клона (ТОЛЬКО если уровень 2)
+        # 4. Создаём нового клона
         if level == 2:
             self.world.clone = Clone(self.player, self.world)
             self.world.clone_group.add(self.world.clone)
@@ -129,24 +129,7 @@ class Game:
         else:
             self.world_data = {'grid': [], 'texts': []}
         self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
-        # Создаём клона только на уровне 2
-        '''if level == 2:
-            if hasattr(self.world, 'clone') and self.world.clone:
-                self.world.clone.kill()
-                self.world.clone = None
-            self.world.clone_group.empty()
-            self.world.clone = Clone(self.player, self.world)
-            self.world.clone_group.add(self.world.clone)
-        else:
-            # Очищаем клона на всех других уровнях
-            if hasattr(self.world, 'clone') and self.world.clone:
-                self.world.clone.kill()
-                self.world.clone = None
-            self.world.clone_group.empty()
-        if level == 3:
-            self.world.allow_drawing = True
-        else:
-            self.world.allow_drawing = False'''
+
 
     def start_music(self):
         """Запускает музыку."""

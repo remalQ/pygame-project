@@ -247,14 +247,13 @@ class Player:
             for door in door_group:
                 if self.rect.colliderect(door.rect):
                     can_enter = True
-                    # Если есть клон — проверяем дистанцию
+                    # Проверка дистанции до клона
                     if hasattr(world, 'clone') and world.clone:
                         dist = abs(self.rect.centerx - world.clone.rect.centerx)
-                        if dist < 60:  # 60 — можно увеличить/уменьшить, под размер двери
+                        if dist < 70:
                             can_enter = False
                     if can_enter and door.image == door.opened:
                         game_over = 1
-                        # Если нужно — убиваем клона
                         if hasattr(world, 'clone') and world.clone:
                             world.clone.kill()
                             world.clone = None

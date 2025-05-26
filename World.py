@@ -9,7 +9,8 @@ from Platforms.BouncingPlatform import BouncingPlatform
 from Door import Door
 from Coin import Coin
 from Clone import Clone
-#для коммита
+
+
 class World:
     """Создает игровой мир из данных и применяет зоны с эффектами."""
     def __init__(self, data, door_group, coin_group, player):
@@ -101,7 +102,15 @@ class World:
         self.door_group.draw(screen)
         # Отрисовываем клона, только если он существует
         if self.clone:
-            self.clone_group.draw(screen)
+            LIGHT_BLUE = (128, 200, 255)
+            # Нарисовать спрайт клона ТАК ЖЕ, как у игрока:
+            for clone in self.clone_group:
+                screen.blit(clone.image, (clone.rect.x - clone.offset_x, clone.rect.y))
+                '''pygame.draw.rect(
+                    screen, (128, 200, 255),
+                    clone.rect, 2
+                )'''
+
         # Отрисовываем игрока последним, чтобы он был поверх клона
         screen.blit(self.player.image, (self.player.rect.x - self.player.offset_x, self.player.rect.bottom - self.player.image.get_height()))
         # Отрисовка текстов
