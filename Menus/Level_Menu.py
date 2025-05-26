@@ -24,9 +24,17 @@ class LevelMenu:
 
         dummy_player = pygame.sprite.Sprite()
         dummy_player.rect = pygame.Rect(0, 0, TILE_SIZE, TILE_SIZE)
+        dummy_player.gravity = 1
+        dummy_player.can_pass_walls = False
+        dummy_player.offset_x = 0
+        dummy_player.hitbox_height = TILE_SIZE
+        dummy_player.hitbox_width = TILE_SIZE
+        dummy_player.image = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
+        dummy_player.image.fill((0, 0, 0, 0))
 
         dummy_group = pygame.sprite.Group()
         world = World(world_data, dummy_group, dummy_group, dummy_player)
+
         world.draw(preview_surface)
 
         scaled_size = (int(level_width * scale), int(level_height * scale))
