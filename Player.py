@@ -250,7 +250,7 @@ class Player:
                     # Проверка дистанции до клона
                     if hasattr(world, 'clone') and world.clone:
                         dist = abs(self.rect.centerx - world.clone.rect.centerx)
-                        if dist < 70:
+                        if dist < 50:
                             can_enter = False
                     if can_enter and door.image == door.opened:
                         game_over = 1
