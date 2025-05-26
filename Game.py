@@ -73,10 +73,14 @@ class Game:
             self.jump_sound.set_volume(self.sound_volume)
 
     def reset_level(self, level):
-        """Сбрасывает уровень."""
         self.player.coins_collected = 0
         self.game_over = 0
         self.start_time = pygame.time.get_ticks()
+
+        # 1. Сначала загрузка уровня и мира (заполняются все платформы)
+        self.load_level(level)
+
+        # 2. Теперь корректируем позицию игрока по платформам (если не уровень 3)
         if level == 3:
             self.player.reset(100, -100)
             self.player.start_falling()
@@ -96,23 +100,17 @@ class Game:
                     break
             self.player.reset(100, y_position)
             self.world.allow_drawing = False
-        self.load_level(level)
-        # Создаём клона только на уровне 2
+
+        # 3. Удаляем старого клона (если был)
+        if hasattr(self.world, 'clone') and self.world.clone:
+            self.world.clone.kill()
+            self.world.clone = None
+        self.world.clone_group.empty()
+
+        # 4. Создаём нового клона (ТОЛЬКО если уровень 2)
         if level == 2:
-            if hasattr(self.world, 'clone') and self.world.clone:
-                self.world.clone.kill()
-                self.world.clone = None
-            self.world.clone_group.empty()
             self.world.clone = Clone(self.player, self.world)
             self.world.clone_group.add(self.world.clone)
-        else:
-            # Очищаем клона на всех других уровнях
-            if hasattr(self.world, 'clone') and self.world.clone:
-                self.world.clone.kill()
-                self.world.clone = None
-            self.world.clone_group.empty()
-        if level != 4 or not self.stop_broken:
-            self.stop_broken = False
 
     def load_level(self, level):
         """Загружает уровень."""
@@ -132,7 +130,7 @@ class Game:
             self.world_data = {'grid': [], 'texts': []}
         self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
         # Создаём клона только на уровне 2
-        if level == 2:
+        '''if level == 2:
             if hasattr(self.world, 'clone') and self.world.clone:
                 self.world.clone.kill()
                 self.world.clone = None
@@ -148,7 +146,7 @@ class Game:
         if level == 3:
             self.world.allow_drawing = True
         else:
-            self.world.allow_drawing = False
+            self.world.allow_drawing = False'''
 
     def start_music(self):
         """Запускает музыку."""
