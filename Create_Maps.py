@@ -5,7 +5,7 @@ import sys
 import pickle
 import pygame
 from TextBox import TextInputBox  # ваш класс для текстового ввода
-#для коммита
+
 # Инициализация Pygame
 pygame.init()
 
@@ -506,7 +506,7 @@ class LevelEditor:
         # --- Зоны: фоновые ---
         for z in self.zones:
             s = pygame.Surface((z['w'], z['h']), pygame.SRCALPHA)
-            s.fill((255, 165, 0, 0))  # полупрозрачный оранжевый
+            s.fill((255, 165, 0, 80))  # полупрозрачный оранжевый
             self.screen.blit(s, (z['x'], z['y']))
 
         # --- Превью рисования зоны ---
