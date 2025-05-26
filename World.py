@@ -115,7 +115,7 @@ class World:
         # Отрисовка зон
         for z in self.zones:
             s = pygame.Surface((z['w'], z['h']), pygame.SRCALPHA)
-            s.fill((255, 165, 0, 80))
+            s.fill((255, 165, 0, 0))
             screen.blit(s, (z['x'], z['y']))
 
     def update(self):
