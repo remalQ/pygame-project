@@ -1,4 +1,3 @@
-# Game.py
 import sys
 import pickle
 from pygame.sprite import Group
