@@ -127,18 +127,30 @@ class World:
             s.fill((255, 165, 0, 0))
             screen.blit(s, (z['x'], z['y']))
 
-    def update(self):
-        for grp in (self.breaking_platform_group,
-                    self.hover_visible_platform_group,
-                    self.moving_platform_group,
-                    self.bouncing_platform_group):
+    def update(self, level=None, stop_broken=None):
+        # Обновляем все платформы (группы)
+        for grp in (
+                self.breaking_platform_group,
+                self.hover_visible_platform_group,
+                self.moving_platform_group,
+                self.bouncing_platform_group
+        ):
             for p in grp.sprites():
                 p.update()
+
+        # <<< Для уровня 4 — флаг, что был выход в главное меню (нужен для особого условия)
+        if stop_broken is not None:
+            self.stop_broken = stop_broken
+
+        # <<< Обновляем двери, передавая уровень и self
         for d in self.door_group:
-            d.update(self.player, self.coin_group)
+            d.update(self.player, self.coin_group, level=level, world=self)
+
+        # Сброс гравитации и ghost_mode на каждом кадре
         self.player.gravity = DEFAULT_GRAVITY
         self.player.can_pass_walls = False
         px, py = self.player.rect.center
+
         for z in self.zones:
             rect = pygame.Rect(z['x'], z['y'], z['w'], z['h'])
             if rect.collidepoint(px, py):
@@ -146,3 +158,21 @@ class World:
                     self.player.gravity = DEFAULT_GRAVITY * z['value']
                 elif z['effect'] == 'ghost_mode':
                     self.player.can_pass_walls = True
+
+    def check_special_condition(self, level):
+        # Уровень 2: проверка дистанции между игроком и клоном
+        if level == 2:
+            if not self.clone:
+                return False
+            dist = abs(self.player.rect.centerx - self.clone.rect.centerx)
+            return dist >= 50
+        # Уровень 4: разрешить завершение только если stop_broken=True (меню было вызвано)
+        if level == 4:
+            # Мы не можем напрямую обратиться к game_instance из World.py, поэтому
+            # передавай флаг снаружи (см. ниже)
+            return getattr(self, "stop_broken", False)
+        # Уровень 8: пароль
+        if level == 8:
+            return self.check_password(level)
+        # Остальные уровни — всегда True (особых условий нет)
+        return True

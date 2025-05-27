@@ -143,6 +143,7 @@ class Clone(pygame.sprite.Sprite):
             self.world.moving_platform_group.sprites() +
             self.world.drawable_platform_group.sprites()
         )
+        all_tiles += [d for d in self.world.door_group if d.image == d.closed]
 
         # --- 1. Горизонтальная коллизия (как у игрока) ---
         rect_h = self.rect.copy()

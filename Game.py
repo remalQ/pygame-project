@@ -242,7 +242,7 @@ class Game:
             self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group, self.screen)
             self.world.breaking_platform_group.update()
             self.world.hover_visible_platform_group.update()
-            self.world.update()
+            self.world.update(level=self.level, stop_broken=getattr(self, "stop_broken", None))
             if self.game_over == 1 and self.level == 8 and not self.world.check_password(self.level):
                 self.game_over = 0  # Отменяем переход, если пароль неверный
             if self.game_over == 1:

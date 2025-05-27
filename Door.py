@@ -24,9 +24,16 @@ class Door(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect(bottomleft=(x, y + tile_size * 2))
 
-    def update(self, player=None, coins_group=None):
-        if coins_group is not None and len(coins_group) == 0:
+    def update(self, player=None, coins_group=None, level=None, world=None):
+        all_coins_collected = (coins_group is None or len(coins_group) == 0)
+
+        special_condition = True
+        if world is not None and hasattr(world, 'check_special_condition'):
+            special_condition = world.check_special_condition(level)
+
+        if all_coins_collected and special_condition:
             self.image = self.opened
         else:
             self.image = self.closed
+
 

@@ -7,7 +7,7 @@ class PasswordBox(Platform):
         super().__init__(x, y, w, h)
         self.digit = 0
         font_size = int(min(w, h) * 0.5)
-        self.font = pygame.font.Font("../fonts/Monocraft.otf", font_size)
+        self.font = pygame.font.Font("./fonts/Monocraft.otf", font_size)
         self.update_image()
 
     def update_image(self):

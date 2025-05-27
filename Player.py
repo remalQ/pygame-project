@@ -172,6 +172,7 @@ class Player:
                 world.moving_platform_group.sprites() +
                 world.drawable_platform_group.sprites()
             )
+            all_tiles += [d for d in world.door_group if d.image == d.closed]
 
             if self.first_frame:
                 dy = 0
