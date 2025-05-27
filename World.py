@@ -9,8 +9,7 @@ from Platforms.MovingPlatform import MovingPlatform
 from Platforms.BouncingPlatform import BouncingPlatform
 from Door import Door
 from Coin import Coin
-from Clone import Clone
-from PasswordBox import PasswordBox
+from Platforms.PasswordBox import PasswordBox
 
 class World:
     def __init__(self, data, door_group, coin_group, player):
