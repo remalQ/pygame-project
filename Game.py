@@ -29,6 +29,8 @@ class Game:
         self.music_playing = False
         self.music_position = 0
         self.sound_volume = 0.5
+        self.restart_img = pygame.image.load("Assets/restart.png").convert_alpha()
+        self.restart_btn_rect = None
         try:
             self.coin_sound = pygame.mixer.Sound("Sounds/coin.wav")
             self.jump_sound = pygame.mixer.Sound("Sounds/jump.wav")
@@ -121,6 +123,7 @@ class Game:
         else:
             self.world_data = {'grid': [], 'texts': []}
         self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
+        self.setup_restart_button()
 
     def start_music(self):
         if not self.music_playing:
@@ -130,6 +133,14 @@ class Game:
                 self.music_playing = True
             except pygame.error as e:
                 print(f"Ошибка загрузки музыки: {e}")
+
+    def setup_restart_button(self):
+        x = 850
+        y = 50
+        width = 80
+        height = 80
+        self.restart_btn_rect = pygame.Rect(x, y, width, height)
+        self.restart_img_scaled = pygame.transform.scale(self.restart_img, (width, height))
 
     def stop_music(self):
         if self.music_playing:
@@ -239,7 +250,11 @@ class Game:
             if self.game_over == 0:
                 self.current_time = (pygame.time.get_ticks() - self.start_time) / 1000
             self.world.draw(self.screen)
-            self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group, self.screen)
+            if hasattr(self, "restart_btn_rect") and self.restart_btn_rect:
+                self.screen.blit(self.restart_img_scaled, self.restart_btn_rect.topleft)
+
+            self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group,
+                                                self.screen)
             self.world.breaking_platform_group.update()
             self.world.hover_visible_platform_group.update()
             self.world.update(level=self.level, stop_broken=getattr(self, "stop_broken", None))
@@ -272,6 +287,11 @@ class Game:
                         self.show_pause_menu()
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = pygame.mouse.get_pos()
+                    if hasattr(self,
+                               "restart_btn_rect") and self.restart_btn_rect and self.restart_btn_rect.collidepoint(
+                            pos):
+                        self.reset_level(self.level)
+                    # Обработка боксов-паролей:
                     for pb in self.world.password_group:
                         if pb.rect.collidepoint(pos):
                             pb.handle_click()
