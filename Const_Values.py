@@ -9,7 +9,7 @@ FPS = 60  # Частота кадров
 
 # Настройка экрана
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("I Hate This Game")  # Заголовок окна
+pygame.display.set_caption("Mind flip")  # Заголовок окна
 clock = pygame.time.Clock()  # Таймер для кадров
 
 # Размер клетки

@@ -3,41 +3,38 @@ from Const_Values import DEFAULT_GRAVITY
 from Create_Maps import TILE_SIZE
 
 class Clone(pygame.sprite.Sprite):
+    """Класс игрового клона (двойника игрока)"""
+
     def __init__(self, player, world):
+        """Создаёт клона по шаблону игрока"""
         super().__init__()
         self.player = player
         self.world = world
-
-        self.hitbox_width = player.hitbox_width  # 28
-        self.hitbox_height = player.hitbox_height  # 90
-        self.offset_x = player.offset_x  # 26
-
+        # Копируем параметры игрока для клона
+        self.hitbox_width = player.hitbox_width
+        self.hitbox_height = player.hitbox_height
+        self.offset_x = player.offset_x
         self.images_right = [img.copy() for img in player.images_right]
         self.images_left = [img.copy() for img in player.images_left]
         self.jump_image_right = player.jump_image_right.copy()
         self.jump_image_left = player.jump_image_left.copy()
         for img in self.images_right + self.images_left + [self.jump_image_right, self.jump_image_left]:
             img.set_alpha(128)
-
         self.direction = 1
         self.image = self.images_right[0]
         self.index = 0
         self.counter = 0
-
-        # СПРАЙТ клона рисуется как у игрока: (rect.x - offset_x, rect.y)
-        # Поэтому rect должен быть без offset_x
-        spawn_gap = 8  # Измени на нужное число для контроля расстояния (0 — вплотную, 2-4 — чуть левее)
+        # Положение клона
+        spawn_gap = 8
         clone_hitbox_x = player.rect.x - self.hitbox_width - spawn_gap
         clone_hitbox_y = player.rect.y
-
         self.rect = pygame.Rect(
             clone_hitbox_x,
             clone_hitbox_y,
             self.hitbox_width,
             self.hitbox_height
         )
-
-        # Остальное как у тебя...
+        # Физика клона
         self.vel_x = 0
         self.vel_y = 0
         self.base_jump_speed = player.base_jump_speed
@@ -56,19 +53,21 @@ class Clone(pygame.sprite.Sprite):
         self.can_pass_walls = False
 
     def start_vertical_bounce(self, initial_speed, deceleration):
+        """Запускает вертикальный отскок"""
         self.vertical_bounce_speed = initial_speed
         self.vertical_bounce_deceleration = deceleration
         self.vertical_bouncing = True
 
     def start_horizontal_bounce(self, initial_speed, deceleration):
+        """Запускает горизонтальный отскок"""
         self.horizontal_bounce_speed = initial_speed
         self.horizontal_bounce_deceleration = deceleration
         self.horizontal_bouncing = True
 
     def update(self, keys, direction, jumped):
+        """Обновляет положение и состояние клона"""
         dx, dy = 0, 0
         walk_cooldown = 3
-
         # Проверка зон (low_gravity, ghost_mode)
         self.gravity = DEFAULT_GRAVITY
         self.can_pass_walls = False
@@ -80,8 +79,7 @@ class Clone(pygame.sprite.Sprite):
                     self.gravity = DEFAULT_GRAVITY * z['value']
                 elif z['effect'] == 'ghost_mode':
                     self.can_pass_walls = True
-
-        # Равнозамедленный отскок
+        # Вертикальный отскок
         if self.vertical_bouncing:
             dy += self.vertical_bounce_speed
             if self.vertical_bounce_speed > 0:
@@ -90,7 +88,7 @@ class Clone(pygame.sprite.Sprite):
                 self.vertical_bounce_speed = min(0, self.vertical_bounce_speed + self.vertical_bounce_deceleration)
             if self.vertical_bounce_speed == 0:
                 self.vertical_bouncing = False
-
+        # Горизонтальный отскок
         if self.horizontal_bouncing:
             dx += self.horizontal_bounce_speed
             if self.horizontal_bounce_speed > 0:
@@ -99,13 +97,11 @@ class Clone(pygame.sprite.Sprite):
                 self.horizontal_bounce_speed = min(0, self.horizontal_bounce_speed + self.horizontal_bounce_deceleration)
             if self.horizontal_bounce_speed == 0:
                 self.horizontal_bouncing = False
-
         # Горизонтальное скольжение
         if abs(self.vel_x) > 0:
             dx += self.vel_x
             self.vel_x *= 0.9
-
-        # Управление (двойник всегда повторяет направление)
+        # Управление движением
         if not self.falling_mode:
             if keys[pygame.K_a]:
                 dx -= 5
@@ -118,7 +114,6 @@ class Clone(pygame.sprite.Sprite):
                 self.jumped = True
             if not keys[pygame.K_SPACE]:
                 self.jumped = False
-
         # Гравитация
         if self.falling_mode:
             self.fall_speed = min(self.fall_speed + 0.5, self.max_fall_speed)
@@ -136,6 +131,7 @@ class Clone(pygame.sprite.Sprite):
                         return True
             return False
 
+        # Все платформы для коллизий
         all_tiles = (
             self.world.platform_group.sprites() +
             self.world.breaking_platform_group.sprites() +
@@ -145,7 +141,7 @@ class Clone(pygame.sprite.Sprite):
         )
         all_tiles += [d for d in self.world.door_group if d.image == d.closed]
 
-        # --- 1. Горизонтальная коллизия (как у игрока) ---
+        # Горизонтальная коллизия
         rect_h = self.rect.copy()
         rect_h.x += dx
         for tile in all_tiles:
@@ -159,7 +155,7 @@ class Clone(pygame.sprite.Sprite):
                 self.vel_x = 0
                 break
 
-        # --- 2. Вертикальная коллизия ---
+        # Вертикальная коллизия
         rect_v = self.rect.copy()
         rect_v.y += dy
         for tile in all_tiles:
@@ -177,7 +173,7 @@ class Clone(pygame.sprite.Sprite):
                     self.fall_speed = 0
                 break
 
-        # --- 3. Коллизии с BouncingPlatform (именно ПОСЛЕ платформ) ---
+        # Коллизии с отскакивающими платформами
         for tile in self.world.bouncing_platform_group.sprites():
             if self.can_pass_walls and tile_in_ghost_zone(tile):
                 continue
@@ -186,11 +182,11 @@ class Clone(pygame.sprite.Sprite):
                 dx += bx
                 dy += by
 
-        # --- 4. Применить движение ---
+        # Применить движение
         self.rect.x += dx
         self.rect.y += dy
 
-        # --- 5. Проверка земли ---
+        # Проверка земли (стоит ли на платформе)
         foot = self.rect.move(0, 1)
         on_ground = False
         for tile in all_tiles:
@@ -204,7 +200,7 @@ class Clone(pygame.sprite.Sprite):
             self.falling_mode = False
             self.fall_speed = 0
 
-        # --- 6. Анимация ---
+        # Анимация
         if self.in_air:
             self.image = self.jump_image_right if self.direction == 1 else self.jump_image_left
         else:

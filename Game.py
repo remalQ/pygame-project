@@ -16,7 +16,10 @@ import pygame
 from Create_Maps import TILE_SIZE
 
 class Game:
+    """Главный класс игры"""
+
     def __init__(self):
+        """Инициализирует игру и все компоненты"""
         pygame.init()
         pygame.mixer.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -30,6 +33,7 @@ class Game:
         self.sound_volume = 0.5
         self.restart_img = pygame.image.load("Assets/restart.png").convert_alpha()
         self.restart_btn_rect = None
+        # Загружаем звуки
         try:
             self.coin_sound = pygame.mixer.Sound("Sounds/coin.wav")
             self.jump_sound = pygame.mixer.Sound("Sounds/jump.wav")
@@ -37,7 +41,9 @@ class Game:
             self.jump_sound.set_volume(self.sound_volume)
         except pygame.error as e:
             print(f"Ошибка загрузки звуковых эффектов: {e}")
+        # Создаём игрока
         self.player = Player(100, HEIGHT - 130, self.coin_sound, self.jump_sound)
+        # Определяем количество уровней по .pkl-файлам
         level_files = [f for f in os.listdir('Maps') if f.endswith('.pkl')]
         def extract_level_number(filename):
             try:
@@ -53,7 +59,6 @@ class Game:
         else:
             self.world_data = {'grid': [], 'texts': []}
             self.world = World(self.world_data, self.door_group, self.coin_group, self.player)
-
         self.game_over = 0
         self.records_db = RecordsDB()
         self.start_time = 0
@@ -64,6 +69,7 @@ class Game:
         self.stop_broken = False
 
     def set_sound_volume(self, volume):
+        """Устанавливает громкость звуковых эффектов"""
         self.sound_volume = volume
         if self.coin_sound:
             self.coin_sound.set_volume(self.sound_volume)
@@ -71,12 +77,11 @@ class Game:
             self.jump_sound.set_volume(self.sound_volume)
 
     def reset_level(self, level):
+        """Сбрасывает состояние уровня и игрока"""
         self.player.coins_collected = 0
         self.game_over = 0
         self.start_time = pygame.time.get_ticks()
-
         self.load_level(level)
-
         if level == 3:
             self.player.reset(100, -100)
             self.player.start_falling()
@@ -96,17 +101,18 @@ class Game:
                     break
             self.player.reset(100, y_position)
             self.world.allow_drawing = False
-
+        # Удаляем клона, если он был
         if hasattr(self.world, 'clone') and self.world.clone:
             self.world.clone.kill()
             self.world.clone = None
         self.world.clone_group.empty()
-
+        # Для уровня 2 создаём клона
         if level == 2:
             self.world.clone = Clone(self.player, self.world)
             self.world.clone_group.add(self.world.clone)
 
     def load_level(self, level):
+        """Загружает уровень из файла"""
         self.door_group = Group()
         self.coin_group = Group()
         level_path = f'Maps/level{level}.pkl'
@@ -115,7 +121,7 @@ class Game:
                 with open(level_path, 'rb') as pickle_in:
                     self.world_data = pickle.load(pickle_in)
                 if not isinstance(self.world_data, (list, dict)):
-                    raise ValueError("Ошибка: загруженные данные уровня не являются списком или словарем!")
+                    raise ValueError("Ошибка: загруженные данные уровня не являются списком или словарём!")
             except Exception as e:
                 print(f"Ошибка загрузки уровня: {e}")
                 self.world_data = {'grid': [], 'texts': []}
@@ -125,6 +131,7 @@ class Game:
         self.setup_restart_button()
 
     def start_music(self):
+        """Воспроизводит фоновую музыку"""
         if not self.music_playing:
             try:
                 pygame.mixer.music.load(self.music_file)
@@ -134,6 +141,7 @@ class Game:
                 print(f"Ошибка загрузки музыки: {e}")
 
     def setup_restart_button(self):
+        """Создаёт кнопку перезапуска уровня"""
         x = 850
         y = 50
         width = 80
@@ -142,16 +150,19 @@ class Game:
         self.restart_img_scaled = pygame.transform.scale(self.restart_img, (width, height))
 
     def stop_music(self):
+        """Останавливает воспроизведение музыки"""
         if self.music_playing:
             self.music_position = pygame.mixer.music.get_pos()
             pygame.mixer.music.stop()
             self.music_playing = False
 
     def reset_music(self):
+        """Полностью сбрасывает музыку в начало"""
         self.stop_music()
         self.music_position = 0
 
     def show_main_menu(self):
+        """Отображает главное меню игры"""
         self.reset_music()
         if self.level == 4:
             self.stop_broken = True
@@ -196,6 +207,7 @@ class Game:
             pygame.display.flip()
 
     def show_pause_menu(self):
+        """Отображает меню паузы"""
         pause_active = True
         continue_button = Button("Продолжить", WIDTH // 2, HEIGHT // 2 - 50, GRAY, WHITE)
         main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2 + 50, GRAY, WHITE)
@@ -216,6 +228,7 @@ class Game:
             pygame.display.flip()
 
     def show_game_completed_screen(self):
+        """Отображает экран победы (игра пройдена)"""
         completed_active = True
         main_menu_button = Button("Выход в меню", WIDTH // 2, HEIGHT // 2, GRAY, WHITE)
         while completed_active:
@@ -235,12 +248,14 @@ class Game:
             pygame.display.flip()
 
     def check_and_save_record(self):
+        """Сохраняет рекорд после прохождения уровня"""
         if self.game_over == 1:
             completion_time = self.current_time
             player_name = "Player"
             self.records_db.add_record(player_name, completion_time, self.level)
 
     def run(self):
+        """Запускает главный игровой цикл"""
         self.show_main_menu()
         running = True
         while running:
@@ -252,11 +267,11 @@ class Game:
             if hasattr(self, "restart_btn_rect") and self.restart_btn_rect:
                 self.screen.blit(self.restart_img_scaled, self.restart_btn_rect.topleft)
 
-            self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group,
-                                                self.screen)
+            self.game_over = self.player.update(self.game_over, self.world, self.door_group, self.coin_group, self.screen)
             self.world.breaking_platform_group.update()
             self.world.hover_visible_platform_group.update()
             self.world.update(level=self.level, stop_broken=getattr(self, "stop_broken", None))
+            # Проверяем пароль на 8 уровне
             if self.game_over == 1 and self.level == 8 and not self.world.check_password(self.level):
                 self.game_over = 0  # Отменяем переход, если пароль неверный
             if self.game_over == 1:
@@ -286,15 +301,12 @@ class Game:
                         self.show_pause_menu()
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = pygame.mouse.get_pos()
-                    if hasattr(self,
-                               "restart_btn_rect") and self.restart_btn_rect and self.restart_btn_rect.collidepoint(
-                            pos):
+                    if hasattr(self, "restart_btn_rect") and self.restart_btn_rect and self.restart_btn_rect.collidepoint(pos):
                         self.reset_level(self.level)
-                    # Обработка боксов-паролей:
+                    # Обработка клика по полю пароля
                     for pb in self.world.password_group:
                         if pb.rect.collidepoint(pos):
                             pb.handle_click()
                             break
-
             pygame.display.flip()
         pygame.quit()

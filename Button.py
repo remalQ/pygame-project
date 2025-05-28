@@ -1,7 +1,6 @@
-from Const_Values import *  # Импорт необходимых констант
+from Const_Values import *
 
 
-# Класс кнопки
 class Button:
     """
     Класс, представляющий кнопку на экране.
